@@ -1,14 +1,14 @@
-# Ciclo & Saude
+# Ciclo & Saúde
 
-Projeto academico de TCC para organizar informacoes clinicas em ginecologia.
+Projeto acadêmico desenvolvido como TCC, com foco na organização de informações clínicas em ginecologia.
 
-O sistema tem 3 partes:
+O sistema foi dividido em três partes:
 
-- app mobile da usuaria
-- aplicativo desktop da clinica
+- app mobile da usuária
+- aplicativo desktop da clínica
 - gerenciador web administrativo
 
-## Tecnologias
+## Tecnologias utilizadas
 
 - Python
 - Django
@@ -17,18 +17,18 @@ O sistema tem 3 partes:
 - Expo/React Native
 - Tkinter
 
-## Funcionalidades atuais
+## O que já está implementado
 
 - cadastro e login por perfil
-- exames
-- ciclo menstrual
-- historico medico
-- pedidos de acesso entre paciente e clinica
-- mensagens
-- consultas pela usuaria
+- upload e consulta de exames
+- registro do ciclo menstrual
+- histórico médico
+- pedidos de acesso entre paciente e clínica
+- mensagens entre paciente e clínica
+- agendamento de consultas pela usuária
 - FAQ e logs no painel web
 
-## Como rodar
+## Como executar
 
 ### Backend
 
@@ -38,9 +38,9 @@ python manage.py seed_demo
 python manage.py runserver
 ```
 
-Depois abra `http://127.0.0.1:8000/`.
+Depois, abra `http://127.0.0.1:8000/`.
 
-### Mobile
+### App mobile
 
 ```powershell
 cd usuario-mobile
@@ -48,7 +48,9 @@ npm install
 npx expo start
 ```
 
-### Desktop da clinica
+Se for testar no celular, use o IP da máquina no endereço da API.
+
+### Aplicativo desktop da clínica
 
 ```powershell
 cd clinica-desktop
@@ -59,8 +61,10 @@ python app.py
 
 - Admin: `admin@ciclosaude.local` / `Admin12345`
 - Paciente: `maria@demo.com` / `Paciente123`
-- Clinica: `clinica@demo.com` / `Clinica123`
+- Clínica: `clinica@demo.com` / `Clinica123`
 
-## Observacao
+## Observações
 
-O banco atual e SQLite e foi mantido assim para desenvolvimento e apresentacao.
+- O projeto usa SQLite neste momento, por ser mais simples para desenvolvimento e demonstração.
+- Os dados de exemplo podem ser carregados com `python manage.py seed_demo`.
+- O repositório não inclui o banco preenchido nem dependências instaladas localmente.
