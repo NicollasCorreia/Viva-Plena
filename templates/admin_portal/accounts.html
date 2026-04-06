@@ -1,0 +1,33 @@
+{% extends 'admin_portal/base.html' %}
+{% block admin_title %}Contas da plataforma{% endblock %}
+{% block admin_subtitle %}Controle visual de contas por perfil, com status claro e ação direta para ativar ou suspender acessos.{% endblock %}
+{% block admin_content %}
+<article class="table-card admin-panel card border-0 shadow-sm">
+    <div class="section-head">
+        <div>
+            <h3>Usuários e clínicas</h3>
+            <p class="section-copy">Visão centralizada dos perfis operacionais disponíveis fora da conta administrativa.</p>
+        </div>
+    </div>
+    <div class="table-responsive">
+    <table class="table admin-table table-hover align-middle mb-0">
+        <thead><tr><th>Nome</th><th>Perfil</th><th>E-mail</th><th>Status</th><th>Acao</th></tr></thead>
+        <tbody>
+            {% for item in users %}
+            <tr>
+                <td>{{ item.full_name }}</td>
+                <td>{{ item.get_role_display }}</td>
+                <td>{{ item.email }}</td>
+                <td><span class="status {% if item.is_active %}status-active{% else %}status-suspended{% endif %}">{% if item.is_active %}Ativo{% else %}Suspenso{% endif %}</span></td>
+                <td>
+                    <form method="post">{% csrf_token %}<input type="hidden" name="user_id" value="{{ item.id }}"><input type="hidden" name="action" value="toggle"><button class="btn btn-secondary btn-sm" type="submit">Alternar status</button></form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="empty-note">Nenhum registro encontrado.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</article>
+{% endblock %}

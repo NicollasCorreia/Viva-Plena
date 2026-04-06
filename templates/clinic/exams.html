@@ -1,0 +1,36 @@
+{% extends 'clinic/base.html' %}
+{% block clinic_title %}Exames autorizados{% endblock %}
+{% block clinic_content %}
+<article class="table-card card border-0 shadow-sm">
+    <div class="section-head">
+        <h3>Lista de exames</h3>
+        <form method="get" class="inline-filter">
+            <select name="patient">
+                <option value="">Todas as pacientes</option>
+                {% for item in approved_requests %}
+                <option value="{{ item.patient.id }}" {% if selected_patient_id == item.patient.id|stringformat:'s' %}selected{% endif %}>{{ item.patient.full_name }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-secondary btn-sm" type="submit">Filtrar</button>
+        </form>
+    </div>
+    <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+        <thead><tr><th>Paciente</th><th>Titulo</th><th>Tipo</th><th>Data</th><th>Arquivo</th></tr></thead>
+        <tbody>
+            {% for exam in exams %}
+            <tr>
+                <td>{{ exam.owner.full_name }}</td>
+                <td>{{ exam.title }}</td>
+                <td>{{ exam.exam_type }}</td>
+                <td>{{ exam.performed_at|date:"d/m/Y" }}</td>
+                <td><a href="{{ exam.file.url }}">Abrir</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">Nenhum exame acessivel no momento.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</article>
+{% endblock %}

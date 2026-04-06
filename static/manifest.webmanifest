@@ -1,0 +1,15 @@
+{
+  "name": "Ciclo & Saude",
+  "short_name": "CicloSaude",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3f6fb",
+  "theme_color": "#1976d2",
+  "icons": [
+    {
+      "src": "/static/icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

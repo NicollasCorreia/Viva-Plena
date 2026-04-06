@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block body_class %}dashboard-body{% endblock %}
+
+{% block content %}
+{% with current=request.resolver_match.url_name %}
+<main class="dashboard-layout admin-shell container-fluid px-0">
+    <aside class="sidebar admin-sidebar d-flex flex-column">
+        <div class="sidebar-brand">
+            <div class="brand-mark">
+                <img src="{% static 'icons/app-icon.svg' %}" alt="Ciclo &amp; Saúde">
+            </div>
+            <div>
+                <span class="eyebrow">Ciclo &amp; Saúde</span>
+                <h2>Gerenciador</h2>
+                <p class="sidebar-copy">Painel administrativo central da plataforma.</p>
+            </div>
+        </div>
+        <nav class="sidebar-nav nav flex-column gap-2">
+            <a class="nav-link admin-nav-link {% if current == 'admin_dashboard' %}is-active{% endif %}" href="{% url 'admin_dashboard' %}">
+                <span class="nav-link-copy">
+                    <strong>Dashboard</strong>
+                    <small>Visão geral</small>
+                </span>
+            </a>
+            <a class="nav-link admin-nav-link {% if current == 'admin_clinics' %}is-active{% endif %}" href="{% url 'admin_clinics' %}">
+                <span class="nav-link-copy">
+                    <strong>Clínicas</strong>
+                    <small>Aprovações</small>
+                </span>
+            </a>
+            <a class="nav-link admin-nav-link {% if current == 'admin_accounts' %}is-active{% endif %}" href="{% url 'admin_accounts' %}">
+                <span class="nav-link-copy">
+                    <strong>Contas</strong>
+                    <small>Usuários ativos</small>
+                </span>
+            </a>
+            <a class="nav-link admin-nav-link {% if current == 'admin_logs' %}is-active{% endif %}" href="{% url 'admin_logs' %}">
+                <span class="nav-link-copy">
+                    <strong>Logs</strong>
+                    <small>Auditoria</small>
+                </span>
+            </a>
+            <a class="nav-link admin-nav-link {% if current == 'admin_faq' %}is-active{% endif %}" href="{% url 'admin_faq' %}">
+                <span class="nav-link-copy">
+                    <strong>FAQ</strong>
+                    <small>Suporte</small>
+                </span>
+            </a>
+            <a class="nav-link admin-nav-link {% if current == 'admin_reports' %}is-active{% endif %}" href="{% url 'admin_reports' %}">
+                <span class="nav-link-copy">
+                    <strong>Relatórios</strong>
+                    <small>Exportações</small>
+                </span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <span class="sidebar-footer-label">Sessão atual</span>
+            <strong>{{ request.user.full_name }}</strong>
+            <span class="sidebar-footer-copy">Perfil administrador</span>
+        </div>
+    </aside>
+    <section class="dashboard-content">
+        <header class="topbar admin-topbar card shadow-sm border-0">
+            <div class="topbar-copy">
+                <span class="eyebrow">Governança e rastreabilidade</span>
+                <h1 class="h3 mb-0">{% block admin_title %}Painel administrativo{% endblock %}</h1>
+                <p class="topbar-subtitle">{% block admin_subtitle %}Acompanhe cadastros, auditoria, relatórios e operação institucional em um painel unificado.{% endblock %}</p>
+            </div>
+            <div class="header-actions admin-header-actions">
+                <span class="topbar-pill">Admin web</span>
+                <span class="topbar-pill topbar-pill-muted">{{ unread_notifications }} alerta(s)</span>
+                <div class="topbar-user">
+                    <span class="topbar-avatar">{{ request.user.full_name|first|upper }}</span>
+                    <div>
+                        <strong>{{ request.user.full_name }}</strong>
+                        <small>{{ request.user.email }}</small>
+                    </div>
+                </div>
+                <a class="btn btn-ghost btn-sm" href="{% url 'logout' %}">Sair</a>
+            </div>
+        </header>
+        {% block admin_content %}{% endblock %}
+    </section>
+</main>
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'admin_portal/base.html' %}
+{% block admin_title %}Logs e auditoria{% endblock %}
+{% block admin_subtitle %}Consulta de eventos do sistema com filtragem por severidade, reforçando a rastreabilidade mostrada na referência visual.{% endblock %}
+{% block admin_content %}
+<article class="table-card admin-panel card border-0 shadow-sm">
+    <div class="section-head">
+        <div>
+            <h3>Eventos do sistema</h3>
+            <p class="section-copy">Use o filtro para isolar alertas críticos e evidências de operação.</p>
+        </div>
+        <form method="get" class="inline-filter admin-filter">
+            <select name="level">
+                <option value="">Todos</option>
+                <option value="info" {% if level == 'info' %}selected{% endif %}>Informação</option>
+                <option value="warning" {% if level == 'warning' %}selected{% endif %}>Alerta</option>
+                <option value="critical" {% if level == 'critical' %}selected{% endif %}>Crítico</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" type="submit">Filtrar</button>
+        </form>
+    </div>
+    <div class="table-responsive">
+    <table class="table admin-table table-hover align-middle mb-0">
+        <thead><tr><th>Data</th><th>Ação</th><th>Ator</th><th>Alvo</th><th>Nível</th></tr></thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.created_at|date:"d/m/Y H:i" }}</td>
+                <td>{{ log.action }}</td>
+                <td>{{ log.actor.full_name|default:'Sistema' }}</td>
+                <td>{{ log.target_user.full_name|default:'-' }}</td>
+                <td><span class="status status-{{ log.level }}">{{ log.get_level_display }}</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="empty-note">Nenhum log encontrado.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</article>
+{% endblock %}

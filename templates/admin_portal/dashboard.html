@@ -1,0 +1,79 @@
+{% extends 'admin_portal/base.html' %}
+{% block admin_title %}Dashboard administrativo{% endblock %}
+{% block admin_subtitle %}Resumo operacional do ecossistema com foco em aprovações, exames disponíveis e eventos recentes de auditoria.{% endblock %}
+{% block admin_content %}
+<section class="stats-row admin-stats-row">
+    <article class="metric-card admin-metric-card card border-0 shadow-sm">
+        <span class="metric-label">Pacientes</span>
+        <strong>{{ patient_count }}</strong>
+        <span class="metric-copy">Contas de usuárias cadastradas.</span>
+    </article>
+    <article class="metric-card admin-metric-card card border-0 shadow-sm">
+        <span class="metric-label">Clínicas</span>
+        <strong>{{ clinic_count }}</strong>
+        <span class="metric-copy">Instituições cadastradas na plataforma.</span>
+    </article>
+    <article class="metric-card admin-metric-card card border-0 shadow-sm">
+        <span class="metric-label">Exames</span>
+        <strong>{{ exam_count }}</strong>
+        <span class="metric-copy">Arquivos ativos centralizados no backend.</span>
+    </article>
+    <article class="metric-card admin-metric-card card border-0 shadow-sm">
+        <span class="metric-label">Pendências</span>
+        <strong>{{ pending_clinics|length }}</strong>
+        <span class="metric-copy">Clínicas aguardando decisão administrativa.</span>
+    </article>
+</section>
+<section class="dashboard-grid admin-dashboard-grid">
+    <article class="table-card admin-panel admin-panel-contrast card border-0 shadow-sm">
+        <div class="section-head">
+            <div>
+                <h3>Resumo das solicitações</h3>
+                <p class="section-copy">Status atuais dos vínculos entre pacientes e clínicas.</p>
+            </div>
+        </div>
+        <div class="summary-strip">
+            {% for item in request_summary %}
+            <article class="summary-tile status-{{ item.status }}">
+                <span class="summary-label">
+                    {% if item.status == 'pending' %}Pendentes{% elif item.status == 'approved' %}Aprovadas{% elif item.status == 'rejected' %}Recusadas{% elif item.status == 'revoked' %}Revogadas{% else %}{{ item.status|title }}{% endif %}
+                </span>
+                <strong>{{ item.total }}</strong>
+            </article>
+            {% empty %}
+            <p class="empty-note mb-0">Nenhuma solicitação registrada até o momento.</p>
+            {% endfor %}
+        </div>
+    </article>
+    <article class="table-card admin-panel card border-0 shadow-sm">
+        <div class="section-head"><h3>Clínicas pendentes</h3><a href="{% url 'admin_clinics' %}">Gerenciar</a></div>
+        <div class="table-responsive">
+        <table class="table admin-table table-hover align-middle mb-0">
+            <thead><tr><th>Clínica</th><th>CNPJ</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for clinic in pending_clinics %}
+                <tr><td>{{ clinic.full_name }}</td><td>{{ clinic.cnpj }}</td><td><span class="status status-{{ clinic.approval_status }}">{{ clinic.get_approval_status_display }}</span></td></tr>
+                {% empty %}
+                <tr><td colspan="3" class="empty-note">Nenhuma clínica pendente.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </article>
+    <article class="table-card admin-panel admin-span-2 card border-0 shadow-sm">
+        <div class="section-head"><h3>Últimos logs</h3><a href="{% url 'admin_logs' %}">Ver todos</a></div>
+        <div class="table-responsive">
+        <table class="table admin-table table-hover align-middle mb-0">
+            <thead><tr><th>Ação</th><th>Ator</th><th>Quando</th></tr></thead>
+            <tbody>
+                {% for log in recent_logs %}
+                <tr><td>{{ log.action }}</td><td>{{ log.actor.full_name|default:'Sistema' }}</td><td>{{ log.created_at|date:"d/m/Y H:i" }}</td></tr>
+                {% empty %}
+                <tr><td colspan="3" class="empty-note">Nenhum log registrado.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </article>
+</section>
+{% endblock %}

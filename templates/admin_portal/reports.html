@@ -1,0 +1,23 @@
+{% extends 'admin_portal/base.html' %}
+{% block admin_title %}Relatórios gerenciais{% endblock %}
+{% block admin_subtitle %}Indicadores executivos e exportação de dados em um painel compacto, com cards e blocos inspirados no visual de referência.{% endblock %}
+{% block admin_content %}
+<section class="stats-row admin-stats-row">
+    {% for label, value in summary %}
+    <article class="metric-card admin-metric-card card border-0 shadow-sm">
+        <span class="metric-label">{{ label }}</span>
+        <strong>{{ value }}</strong>
+        <span class="metric-copy">Indicador consolidado do ambiente administrativo.</span>
+    </article>
+    {% endfor %}
+</section>
+<article class="info-card admin-panel card border-0 shadow-sm">
+    <div class="section-head">
+        <div>
+            <h3>Exportação de relatório</h3>
+            <p class="section-copy">Baixe um CSV com os principais indicadores do ambiente administrativo.</p>
+        </div>
+    </div>
+    <a class="btn btn-primary" href="?export=csv">Baixar CSV</a>
+</article>
+{% endblock %}

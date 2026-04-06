@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block body_class %}mobile-body{% endblock %}
+
+{% block content %}
+<main class="mobile-shell container-fluid px-3 px-md-0">
+    <header class="mobile-header card shadow-sm border-0 p-3">
+        <div>
+            <span class="eyebrow">Apoio web do app mobile</span>
+            <h1 class="h3 mb-0">{% block patient_title %}Ciclo & Saude{% endblock %}</h1>
+        </div>
+        <div class="header-actions align-items-start align-items-md-center">
+            <span class="badge text-bg-primary">{{ request.user.full_name }}</span>
+            <a class="btn btn-outline-secondary btn-sm" href="{% url 'logout' %}">Sair</a>
+        </div>
+    </header>
+    <section class="mobile-content mt-3">
+        {% block patient_content %}{% endblock %}
+    </section>
+    <nav class="mobile-nav nav nav-pills nav-fill">
+        <a class="nav-link" href="{% url 'patient_dashboard' %}">Inicio</a>
+        <a class="nav-link" href="{% url 'patient_exams' %}">Exames</a>
+        <a class="nav-link" href="{% url 'patient_access' %}">Acessos</a>
+        <a class="nav-link" href="{% url 'patient_appointments' %}">Consultas</a>
+        <a class="nav-link" href="{% url 'patient_notifications' %}">Alertas{% if unread_notifications %}<span class="dot">{{ unread_notifications }}</span>{% endif %}</a>
+    </nav>
+</main>
+{% endblock %}

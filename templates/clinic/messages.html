@@ -1,0 +1,31 @@
+{% extends 'clinic/base.html' %}
+{% block clinic_title %}Mensagens seguras{% endblock %}
+{% block clinic_content %}
+<section class="dashboard-grid">
+    <article class="form-card card border-0 shadow-sm">
+        <h3>Nova mensagem</h3>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<small class="field-error">{{ field.errors|join:', ' }}</small>{% endif %}
+            </div>
+            {% endfor %}
+            <button class="btn btn-primary" type="submit">Enviar</button>
+        </form>
+    </article>
+    <article class="stack">
+        {% for msg in messages_list %}
+        <div class="message-card card border-0 shadow-sm {% if msg.sender_id == request.user.id %}mine{% endif %}">
+            <strong>{{ msg.sender.full_name }}</strong>
+            <p>{{ msg.body }}</p>
+            <span>{{ msg.created_at|date:"d/m/Y H:i" }}</span>
+        </div>
+        {% empty %}
+        <article class="info-card card border-0 shadow-sm"><p class="mb-0">Nenhuma mensagem no momento.</p></article>
+        {% endfor %}
+    </article>
+</section>
+{% endblock %}

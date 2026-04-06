@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Entrar | Ciclo & Saúde{% endblock %}
+{% block body_class %}auth-body{% endblock %}
+{% block content %}
+<main class="auth-layout">
+    <section class="auth-illustration rounded-4 shadow-lg">
+        <div class="auth-brand">
+            <img src="{% static 'icons/app-icon.svg' %}" alt="Ciclo &amp; Saúde" class="auth-logo">
+            <div>
+                <span class="eyebrow">Ciclo &amp; Saúde</span>
+                <h1>Gerenciador web com foco em operação e governança.</h1>
+            </div>
+        </div>
+        <p>Os aplicativos da usuária e da clínica consomem a API REST central. Este acesso web foi desenhado para decisão administrativa, auditoria e acompanhamento institucional.</p>
+        <div class="auth-preview-list">
+            <article class="auth-preview-card">
+                <strong>Dashboard</strong>
+                <span>Indicadores, pendências e logs recentes.</span>
+            </article>
+            <article class="auth-preview-card">
+                <strong>Clínicas</strong>
+                <span>Aprovação, recusa e suspensão de cadastros.</span>
+            </article>
+            <article class="auth-preview-card">
+                <strong>FAQ e relatórios</strong>
+                <span>Suporte institucional e exportação gerencial.</span>
+            </article>
+        </div>
+    </section>
+    <section class="auth-card rounded-4 shadow-lg">
+        <div class="auth-card-head">
+            <span class="eyebrow">Acesso administrativo</span>
+            <h2 class="h3 mb-2">Entrar no gerenciador web</h2>
+            <p class="muted mb-4">Use sua conta administrativa para acompanhar o ecossistema completo.</p>
+        </div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<small class="field-error">{{ field.errors|join:', ' }}</small>{% endif %}
+            </div>
+            {% endfor %}
+            <button class="btn btn-primary w-100" type="submit">Entrar</button>
+        </form>
+        <div class="auth-links mt-4">
+            <a href="{% url 'register_patient' %}">Cadastro de apoio da usuária</a>
+            <a href="{% url 'register_clinic' %}">Cadastro de apoio da clínica</a>
+        </div>
+    </section>
+</main>
+{% endblock %}

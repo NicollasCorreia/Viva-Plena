@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}FAQ | Ciclo & Saúde{% endblock %}
+{% block body_class %}landing-body{% endblock %}
+{% block content %}
+<main class="center-shell narrow container py-4">
+    <div class="page-head mb-4">
+        <h1 class="display-6 fw-bold mb-0">FAQ pública</h1>
+        <a class="btn btn-outline-secondary" href="{% url 'home' %}">Voltar</a>
+    </div>
+    <div class="stack">
+        {% for faq in faqs %}
+        <article class="faq-item card border-0 shadow-sm">
+            <h3>{{ faq.question }}</h3>
+            <p>{{ faq.answer }}</p>
+        </article>
+        {% empty %}
+        <article class="info-card card border-0 shadow-sm"><p class="mb-0">Nenhuma pergunta cadastrada.</p></article>
+        {% endfor %}
+    </div>
+</main>
+{% endblock %}

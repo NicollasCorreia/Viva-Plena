@@ -1,0 +1,36 @@
+{% extends 'admin_portal/base.html' %}
+{% block admin_title %}Aprovação de clínicas{% endblock %}
+{% block admin_subtitle %}Valide o cadastro institucional, acompanhe o status atual de cada clínica e aplique ações de governança quando necessário.{% endblock %}
+{% block admin_content %}
+<article class="table-card admin-panel card border-0 shadow-sm">
+    <div class="section-head">
+        <div>
+            <h3>Clínicas cadastradas</h3>
+            <p class="section-copy">Fluxo de aprovação inspirado no layout de operação do Figma, com destaque para status e ações principais.</p>
+        </div>
+    </div>
+    <div class="table-responsive">
+    <table class="table admin-table table-hover align-middle mb-0">
+        <thead><tr><th>Nome</th><th>CNPJ</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody>
+            {% for clinic in clinics %}
+            <tr>
+                <td>{{ clinic.full_name }}</td>
+                <td>{{ clinic.cnpj }}</td>
+                <td><span class="status status-{{ clinic.approval_status }}">{{ clinic.get_approval_status_display }}</span></td>
+                <td>
+                    <div class="inline-actions action-cluster">
+                        <form method="post">{% csrf_token %}<input type="hidden" name="user_id" value="{{ clinic.id }}"><input type="hidden" name="action" value="approve"><button class="btn btn-primary btn-sm">Aprovar</button></form>
+                        <form method="post">{% csrf_token %}<input type="hidden" name="user_id" value="{{ clinic.id }}"><input type="hidden" name="action" value="reject"><button class="btn btn-danger btn-sm">Recusar</button></form>
+                        <form method="post">{% csrf_token %}<input type="hidden" name="user_id" value="{{ clinic.id }}"><input type="hidden" name="action" value="suspend"><button class="btn btn-secondary btn-sm">Suspender</button></form>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="empty-note">Nenhuma clínica cadastrada.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</article>
+{% endblock %}

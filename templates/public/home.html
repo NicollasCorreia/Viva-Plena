@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Ciclo & Saúde{% endblock %}
+{% block body_class %}landing-body{% endblock %}
+
+{% block content %}
+<main class="landing-shell container py-4 py-lg-5">
+    <section class="hero-card landing-hero">
+        <div class="landing-hero-copy">
+            <span class="eyebrow">Saúde da mulher com dados protegidos</span>
+            <h1 class="display-4 fw-bold">Ciclo &amp; Saúde</h1>
+            <p class="lead">Um ecossistema com app mobile para usuárias, aplicativo da clínica parceira e gerenciador web administrativo com logs, auditoria e controle de acessos.</p>
+            <div class="hero-actions landing-hero-actions">
+                <a class="btn btn-primary btn-lg" href="{% url 'login' %}">Entrar no gerenciador</a>
+                <a class="btn btn-outline-primary btn-lg" href="{% url 'register_patient' %}">Cadastro de apoio da usuária</a>
+                <a class="btn btn-light btn-lg" href="{% url 'register_clinic' %}">Cadastro de apoio da clínica</a>
+            </div>
+        </div>
+        <div class="hero-metrics landing-hero-metrics">
+            <div class="metric-card card border-0 shadow-sm">
+                <strong>{{ patient_count }}</strong>
+                <span>Usuárias cadastradas</span>
+            </div>
+            <div class="metric-card card border-0 shadow-sm">
+                <strong>{{ approved_clinics }}</strong>
+                <span>Clínicas parceiras aprovadas</span>
+            </div>
+            <div class="metric-card card border-0 shadow-sm">
+                <strong>{{ exam_count }}</strong>
+                <span>Exames organizados</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="row g-4 mb-4">
+        <article class="col-lg-4"><div class="info-card h-100 card border-0 shadow-sm">
+            <h3>App mobile da usuária</h3>
+            <p>Aplicativo Expo/React Native para exames, ciclo menstrual, consultas, notificações e controle de consentimentos.</p>
+        </div></article>
+        <article class="col-lg-4"><div class="info-card h-100 card border-0 shadow-sm">
+            <h3>Aplicativo da clínica</h3>
+            <p>Aplicativo institucional conectado à API para solicitar acessos, visualizar exames autorizados, trocar mensagens e emitir relatórios.</p>
+        </div></article>
+        <article class="col-lg-4"><div class="info-card h-100 card border-0 shadow-sm">
+            <h3>Gerenciador web</h3>
+            <p>Painel administrativo web com cards, tabelas, FAQ, aprovação de clínicas e consulta de logs do sistema.</p>
+        </div></article>
+    </section>
+
+    <section class="faq-preview mt-4">
+        <div class="section-head">
+            <h2>Perguntas frequentes</h2>
+            <a href="{% url 'faq_public' %}">Ver tudo</a>
+        </div>
+        <div class="stack">
+            {% for faq in faqs %}
+            <article class="faq-item card border-0 shadow-sm">
+                <h4>{{ faq.question }}</h4>
+                <p>{{ faq.answer }}</p>
+            </article>
+            {% empty %}
+            <article class="faq-item card border-0 shadow-sm"><p>Nenhuma FAQ publicada ainda.</p></article>
+            {% endfor %}
+        </div>
+    </section>
+</main>
+{% endblock %}
