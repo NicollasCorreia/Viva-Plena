@@ -36,7 +36,7 @@
                 <td>{{ exam.title }}</td>
                 <td>{{ exam.exam_type }}</td>
                 <td>{{ exam.performed_at|date:"d/m/Y" }}</td>
-                <td><a href="{{ exam.file.url }}">Abrir</a></td>
+                <td><a href="{{ exam.file.url }}" target="_blank" rel="noopener noreferrer" aria-label="Abrir exame {{ exam.title }} de {{ exam.owner.full_name }} em nova guia">Abrir em nova guia</a></td>
             </tr>
             {% empty %}
             <tr><td colspan="5">Nenhum exame foi liberado até agora.</td></tr>

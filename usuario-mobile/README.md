@@ -9,6 +9,15 @@ npm install
 npx expo start
 ```
 
+## Servidor da API
+
+O app agora usa um endereco fixo de backend via `EXPO_PUBLIC_API_URL`.
+
+1. Copie `usuario-mobile/.env.example` para `usuario-mobile/.env`
+2. Ajuste a URL uma unica vez para o servidor que o app deve consumir
+
+A usuaria final nao precisa mais digitar esse endereco dentro do aplicativo.
+
 ## Usar em redes diferentes
 
 ```powershell
@@ -47,6 +56,7 @@ Use sempre a URL `https://...` que estiver encaminhando para `http://localhost:8
 - consultas
 - mensagens
 - notificacoes
+- splash animada do CESMAC CITEC na abertura do app
 
 ## Conta de teste
 

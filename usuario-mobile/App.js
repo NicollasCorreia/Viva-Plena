@@ -3,7 +3,8 @@ import * as DocumentPicker from "expo-document-picker";
 import { StatusBar } from "expo-status-bar";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useState } from "react";
+import LottieView from "lottie-react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +21,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from "react-native";
 
@@ -36,6 +38,10 @@ const LEGACY_STORAGE_KEYS = {
 };
 
 const INSTITUTION_NAME = "CESMAC";
+const NAV_ITEM_WIDTH = 38;
+const NAV_ITEM_GAP = 2;
+const NAV_SHELL_HORIZONTAL_INSET = 12;
+const NAV_CONTENT_HORIZONTAL_PADDING = 4;
 
 const NAV_ITEMS = [
   { key: "home", label: "Painel", icon: "home" },
@@ -85,6 +91,8 @@ function normalizeUrl(url) {
   return url.trim().replace(/\/+$/, "");
 }
 
+const CONFIGURED_API_URL = normalizeUrl(process.env.EXPO_PUBLIC_API_URL || "http://127.0.0.1:8000");
+
 async function getStoredValue(primaryKey, legacyKey) {
   const currentValue = await AsyncStorage.getItem(primaryKey);
   if (currentValue !== null) return currentValue;
@@ -130,9 +138,9 @@ async function apiRequest(apiUrl, path, { method = "GET", token, body, isFormDat
       headers,
       body: isFormData ? body : body ? JSON.stringify(body) : undefined,
     });
-  } catch (error) {
+  } catch (_error) {
     throw new Error(
-      "Nao foi possivel alcancar o servidor. Verifique se o backend esta rodando, se o app usa o IP atual da maquina e se o Android pode acessar HTTP local."
+      "Nao foi possivel alcancar o servidor configurado do app. Verifique se o backend esta ativo e se a EXPO_PUBLIC_API_URL aponta para um endereco acessivel pelo dispositivo."
     );
   }
 
@@ -364,7 +372,44 @@ function EmptyState({ title, description }) {
   );
 }
 
-function AuthScreen({ apiUrl, setApiUrl, onLoginSuccess }) {
+function MobileSplashScreen({ onFinish }) {
+  const animationRef = useRef(null);
+  const finishedRef = useRef(false);
+
+  useEffect(() => {
+    animationRef.current?.play?.();
+    const timeout = setTimeout(() => {
+      if (finishedRef.current) return;
+      finishedRef.current = true;
+      onFinish();
+    }, 7000);
+
+    return () => clearTimeout(timeout);
+  }, [onFinish]);
+
+  const handleAnimationFinish = () => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    onFinish();
+  };
+
+  return (
+    <SafeAreaView style={styles.splashScreen}>
+      <StatusBar style="dark" />
+      <LottieView
+        ref={animationRef}
+        autoPlay={false}
+        loop={false}
+        onAnimationFinish={handleAnimationFinish}
+        resizeMode="cover"
+        source={require("./assets/animations/citec-splash.json")}
+        style={styles.splashAnimation}
+      />
+    </SafeAreaView>
+  );
+}
+
+function AuthScreen({ apiUrl, onLoginSuccess }) {
   const [mode, setMode] = useState("login");
   const [submitting, setSubmitting] = useState(false);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
@@ -406,7 +451,7 @@ function AuthScreen({ apiUrl, setApiUrl, onLoginSuccess }) {
     }
   };
 
-  const disabled = !apiUrl || submitting;
+  const disabled = submitting;
 
   return (
     <LinearGradient colors={['#FCA5A5', '#E0F2FE']} style={styles.safeArea}>
@@ -427,10 +472,6 @@ function AuthScreen({ apiUrl, setApiUrl, onLoginSuccess }) {
             <Pressable onPress={() => setMode("register")} style={[styles.modeButton, mode === "register" && styles.modeButtonActive]}>
               <Text style={[styles.modeButtonText, mode === "register" && styles.modeButtonTextActive]}>Criar conta</Text>
             </Pressable>
-          </View>
-
-          <View style={{ marginBottom: 20 }}>
-             <LabeledInput label="Endereço do sistema (Servidor)" value={apiUrl} onChangeText={setApiUrl} autoCapitalize="none" placeholder="http://192.168.0.15:8000" />
           </View>
 
           {mode === "login" ? (
@@ -1245,17 +1286,21 @@ function FAQScreen({ apiUrl, token }) {
 }
 
 export default function App() {
+  const { width: screenWidth } = useWindowDimensions();
   const [booting, setBooting] = useState(true);
-  const [apiUrl, setApiUrl] = useState("");
   const [token, setToken] = useState("");
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("home");
   const [dashboard, setDashboard] = useState(null);
   const [, setRefreshingDashboard] = useState(false);
-  const [settingsVisible, setSettingsVisible] = useState(false);
-  const [draftApiUrl, setDraftApiUrl] = useState("");
   const [messageFocusCreatedAt, setMessageFocusCreatedAt] = useState(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [introVisible, setIntroVisible] = useState(true);
+  const apiUrl = CONFIGURED_API_URL;
+  const hideIntro = useCallback(() => setIntroVisible(false), []);
+  const navAvailableWidth = screenWidth - NAV_SHELL_HORIZONTAL_INSET * 2 - NAV_CONTENT_HORIZONTAL_PADDING * 2;
+  const navRequiredWidth = NAV_ITEMS.length * NAV_ITEM_WIDTH + (NAV_ITEMS.length - 1) * NAV_ITEM_GAP;
+  const navFitsSingleRow = navRequiredWidth <= navAvailableWidth;
 
   useEffect(() => {
     (async () => {
@@ -1264,15 +1309,28 @@ export default function App() {
         getStoredValue(STORAGE_KEYS.token, LEGACY_STORAGE_KEYS.token),
         getStoredValue(STORAGE_KEYS.user, LEGACY_STORAGE_KEYS.user),
       ]);
-      if (savedUrl) {
-        setApiUrl(savedUrl);
-        setDraftApiUrl(savedUrl);
+
+      const normalizedSavedUrl = normalizeUrl(savedUrl || "");
+      const serverChanged = normalizedSavedUrl && normalizedSavedUrl !== apiUrl;
+
+      if (serverChanged) {
+        await AsyncStorage.multiRemove([
+          STORAGE_KEYS.apiUrl,
+          STORAGE_KEYS.token,
+          STORAGE_KEYS.user,
+          LEGACY_STORAGE_KEYS.apiUrl,
+          LEGACY_STORAGE_KEYS.token,
+          LEGACY_STORAGE_KEYS.user,
+        ]);
+      } else {
+        if (savedToken) setToken(savedToken);
+        if (savedUser) setUser(JSON.parse(savedUser));
+        await AsyncStorage.removeItem(LEGACY_STORAGE_KEYS.apiUrl);
       }
-      if (savedToken) setToken(savedToken);
-      if (savedUser) setUser(JSON.parse(savedUser));
+
       setBooting(false);
     })();
-  }, []);
+  }, [apiUrl]);
 
   useEffect(() => {
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
@@ -1303,9 +1361,9 @@ export default function App() {
     setToken(newToken);
     setUser(newUser);
     await AsyncStorage.multiSet([
+      [STORAGE_KEYS.apiUrl, apiUrl],
       [STORAGE_KEYS.token, newToken],
       [STORAGE_KEYS.user, JSON.stringify(newUser)],
-      [STORAGE_KEYS.apiUrl, normalizeUrl(apiUrl)],
     ]);
   };
 
@@ -1364,6 +1422,10 @@ export default function App() {
   if (activeTab === "appointments") activeScreen = <AppointmentsScreen apiUrl={apiUrl} token={token} />;
   if (activeTab === "faq") activeScreen = <FAQScreen apiUrl={apiUrl} token={token} />;
 
+  if (introVisible) {
+    return <MobileSplashScreen onFinish={hideIntro} />;
+  }
+
   if (booting) {
     return (
       <SafeAreaView style={[styles.safeArea, styles.centered]}>
@@ -1373,7 +1435,7 @@ export default function App() {
   }
 
   if (!token || !user) {
-    return <AuthScreen apiUrl={apiUrl} setApiUrl={setApiUrl} onLoginSuccess={persistSession} />;
+    return <AuthScreen apiUrl={apiUrl} onLoginSuccess={persistSession} />;
   }
 
   const firstName = user.full_name?.split(" ")[0] || "paciente";
@@ -1394,55 +1456,50 @@ export default function App() {
       {activeScreen}
 
       {!keyboardVisible ? (
-      <View style={{ position: 'absolute', bottom: 10, left: 10, right: 10 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ backgroundColor: 'rgba(255,255,255,0.98)', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 8, gap: 10, borderWidth: 1, borderColor: '#F2D5D8', shadowColor: '#9A3838', shadowOpacity: 0.1, shadowRadius: 20, elevation: 5 }}>
-          {NAV_ITEMS.map((item) => (
-            <Pressable
-              key={item.key}
-              onPress={() => {
-                if (item.key === "messages") setMessageFocusCreatedAt(null);
-                setActiveTab(item.key);
-              }}
-              style={[{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 6 }, activeTab === item.key && { backgroundColor: '#9A3838' }]}
-            >
-              <Ionicons name={item.icon} size={20} color={activeTab === item.key ? '#FFF' : '#8A5E63'} />
-              <Text style={{ fontWeight: activeTab === item.key ? '800' : '700', color: activeTab === item.key ? '#FFF' : '#8A5E63' }}>{item.label}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+      <View style={styles.bottomNav}>
+        {navFitsSingleRow ? (
+          <View style={styles.bottomNavContentStatic}>
+            {NAV_ITEMS.map((item) => (
+              <Pressable
+                accessibilityLabel={item.label}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === item.key }}
+                key={item.key}
+                onPress={() => {
+                  if (item.key === "messages") setMessageFocusCreatedAt(null);
+                  setActiveTab(item.key);
+                }}
+                style={[styles.navItem, activeTab === item.key && styles.navItemActive]}
+              >
+                <Ionicons name={item.icon} size={22} color={activeTab === item.key ? '#FFF' : '#8A5E63'} />
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.bottomNavContentScrollable}
+          >
+            {NAV_ITEMS.map((item) => (
+              <Pressable
+                accessibilityLabel={item.label}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === item.key }}
+                key={item.key}
+                onPress={() => {
+                  if (item.key === "messages") setMessageFocusCreatedAt(null);
+                  setActiveTab(item.key);
+                }}
+                style={[styles.navItem, activeTab === item.key && styles.navItemActive]}
+              >
+                <Ionicons name={item.icon} size={22} color={activeTab === item.key ? '#FFF' : '#8A5E63'} />
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
       </View>
       ) : null}
-
-      <Modal visible={settingsVisible} transparent animationType="slide">
-        <KeyboardAvoidingView
-          style={styles.modalBackdrop}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-        >
-          <View style={styles.modalCard}>
-            <Text style={styles.cardTitle}>Ajustar conexão</Text>
-            <Text style={styles.modalText}>Use o endereço em que o sistema está disponível para o aplicativo, como `http://192.168.0.15:8000`.</Text>
-            <LabeledInput label="Endereço do sistema" value={draftApiUrl} onChangeText={setDraftApiUrl} autoCapitalize="none" placeholder="http://192.168.0.15:8000" />
-            <View style={styles.rowGap}>
-              <SmallButton title="Cancelar" variant="secondary" onPress={() => setSettingsVisible(false)} />
-              <SmallButton
-                title="Salvar"
-                onPress={async () => {
-                  const value = normalizeUrl(draftApiUrl);
-                  const backendChanged = value !== normalizeUrl(apiUrl || "");
-                  setApiUrl(value);
-                  await AsyncStorage.setItem(STORAGE_KEYS.apiUrl, value);
-                  if (backendChanged) {
-                    await clearStoredSession();
-                    Alert.alert("Endereço atualizado", "Por segurança, você vai precisar entrar novamente neste endereço.");
-                  }
-                  setSettingsVisible(false);
-                }}
-              />
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -1452,9 +1509,21 @@ const styles = StyleSheet.create({
   flexFill: {
     flex: 1,
   },
+  centered: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
   safeArea: {
     flex: 1,
     backgroundColor: "#FCEAEA",
+  },
+  splashScreen: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  splashAnimation: {
+    width: "100%",
+    height: "100%",
   },
   card: {
     backgroundColor: "#FFFFFF",
@@ -1502,7 +1571,7 @@ const styles = StyleSheet.create({
   smallButtonText: {
     color: "#1E6DDC",
     fontWeight: "700",
-    fontSize: 13,
+    fontSize: 14,
   },
   secondaryButtonText: {
     color: "#9A3838",
@@ -1527,7 +1596,7 @@ const styles = StyleSheet.create({
   },
   metricLabel: {
     color: "#8A5E63",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -1535,15 +1604,15 @@ const styles = StyleSheet.create({
   tonePill: {
     alignSelf: "flex-start",
     backgroundColor: "#F9F5F5",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 999,
   },
   tonePillSuccess: { backgroundColor: "#E6F4EA" },
   tonePillWarning: { backgroundColor: "#FFF3E0" },
   tonePillDanger: { backgroundColor: "#FCE8E6" },
   tonePillInfo: { backgroundColor: "#EAF1FF" },
-  tonePillText: { color: "#8A5E63", fontSize: 12, fontWeight: "700" },
+  tonePillText: { color: "#8A5E63", fontSize: 14, fontWeight: "700" },
   tonePillTextSuccess: { color: "#137333" },
   tonePillTextWarning: { color: "#E65100" },
   tonePillTextDanger: { color: "#B31412" },
@@ -1553,7 +1622,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: "#8A5E63",
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
     marginLeft: 4,
   },
@@ -1575,7 +1644,7 @@ const styles = StyleSheet.create({
   },
   screenIntroEyebrow: {
     color: "#A85E5E",
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "800",
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -1617,6 +1686,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     color: "#8A5E63",
+    fontSize: 16,
     lineHeight: 22,
     textAlign: "center",
   },
@@ -1626,7 +1696,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     color: "#FFFFFF",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "800",
     textTransform: "uppercase",
     letterSpacing: 1,
@@ -1666,17 +1736,18 @@ const styles = StyleSheet.create({
   },
   authBenefitTitle: {
     color: "#FFFFFF",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "800",
     marginBottom: 4,
   },
   authBenefitText: {
     color: "rgba(255,255,255,0.9)",
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
   bodyText: {
     color: "#8A5E63",
+    fontSize: 16,
     lineHeight: 24,
   },
   modeRow: {
@@ -1702,6 +1773,7 @@ const styles = StyleSheet.create({
   },
   modeButtonText: {
     color: "#8A5E63",
+    fontSize: 16,
     fontWeight: "700",
   },
   modeButtonTextActive: {
@@ -1726,7 +1798,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   screenContent: {
-    paddingBottom: 100,
+    paddingBottom: 180,
   },
   metricsGrid: {
     flexDirection: "row",
@@ -1746,7 +1818,8 @@ const styles = StyleSheet.create({
   },
   listSubtitle: {
     color: "#8A5E63",
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
   sectionStep: {
     color: "#9A3838",
@@ -1791,7 +1864,8 @@ const styles = StyleSheet.create({
   uploadSubtitle: {
     marginTop: 4,
     color: "#8A5E63",
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
   helpPrompt: {
     marginTop: 4,
@@ -1804,7 +1878,8 @@ const styles = StyleSheet.create({
   },
   helpPromptText: {
     color: "#8A5E63",
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 24,
   },
   choiceCard: {
     backgroundColor: "#F9F5F5",
@@ -1828,6 +1903,7 @@ const styles = StyleSheet.create({
   },
   choiceSubtitle: {
     color: "#8A5E63",
+    fontSize: 15,
   },
   choiceSubtitleActive: {
     color: "#F2D5D8",
@@ -1840,7 +1916,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "800",
   },
   choiceBadgeActive: {
@@ -1885,7 +1961,8 @@ const styles = StyleSheet.create({
   },
   previewCaption: {
     color: "#8A5E63",
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 24,
   },
   examCard: {
     borderTopWidth: 1,
@@ -1914,7 +1991,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
     fontWeight: "800",
-    fontSize: 13,
+    fontSize: 14,
   },
   notificationCard: {
     borderTopWidth: 1,
@@ -1947,13 +2024,13 @@ const styles = StyleSheet.create({
   },
   notificationHint: {
     color: "#9A3838",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     lineHeight: 20,
   },
   notificationMeta: {
     color: "#8A5E63",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
   },
   faqCard: {
@@ -1970,6 +2047,7 @@ const styles = StyleSheet.create({
   },
   faqAnswer: {
     color: "#8A5E63",
+    fontSize: 15,
     lineHeight: 24,
   },
   appHeaderShell: {
@@ -2007,7 +2085,8 @@ const styles = StyleSheet.create({
   appSubtitle: {
     marginTop: 6,
     color: "#8A5E63",
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 24,
   },
   appMetaRow: {
     flexDirection: "row",
@@ -2018,12 +2097,12 @@ const styles = StyleSheet.create({
   appMetaText: {
     flex: 1,
     color: "#8A5E63",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
   },
   headerStatusText: {
     color: "#9A3838",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "800",
   },
   headerStack: {
@@ -2031,17 +2110,13 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
+    bottom: 10,
+    left: 12,
+    right: 12,
     backgroundColor: "rgba(255,255,255,0.98)",
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 6,
+    borderRadius: 32,
+    paddingHorizontal: 4,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: "#F2D5D8",
     shadowColor: "#9A3838",
@@ -2050,25 +2125,30 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
-  navItem: {
-    flexBasis: "22%",
-    minWidth: 0,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 999,
+  bottomNavContentStatic: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    gap: NAV_ITEM_GAP,
+  },
+  bottomNavContentScrollable: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: NAV_ITEM_GAP,
+    paddingHorizontal: NAV_CONTENT_HORIZONTAL_PADDING,
+  },
+  navItem: {
+    width: NAV_ITEM_WIDTH,
+    minWidth: NAV_ITEM_WIDTH,
+    minHeight: 44,
+    paddingVertical: 10,
+    paddingHorizontal: 0,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   navItemActive: {
     backgroundColor: "#9A3838",
-  },
-  navText: {
-    color: "#8A5E63",
-    fontWeight: "700",
-    fontSize: 11,
-    marginTop: 4,
-  },
-  navTextActive: {
-    color: "#FFFFFF",
   },
   modalBackdrop: {
     flex: 1,
