@@ -47,7 +47,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "ciclo_saude.urls"
+ROOT_URLCONF = "viva_plena.urls"
 
 TEMPLATES = [
     {
@@ -65,7 +65,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "ciclo_saude.wsgi.application"
+WSGI_APPLICATION = "viva_plena.wsgi.application"
 
 
 def build_database_config():

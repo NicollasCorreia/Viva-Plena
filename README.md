@@ -69,7 +69,7 @@ Se o app for aberto em outra rede, use túnel com `ngrok`.
 
 ## 4. Estrutura principal do repositório
 
-- `ciclo_saude/`: configuração do Django
+- `viva_plena/`: configuração do Django
 - `platform_core/`: models, views, APIs e regras de negócio
 - `templates/`: telas web
 - `static/`: CSS, JS e ícones
