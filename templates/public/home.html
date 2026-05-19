@@ -1,56 +1,77 @@
 {% extends 'base.html' %}
 
-{% block title %}Ciclo & Saúde{% endblock %}
+{% block title %}Viva Plena{% endblock %}
 {% block body_class %}landing-body{% endblock %}
 
 {% block content %}
 <main class="landing-shell container py-4 py-lg-5">
     <section class="hero-card landing-hero">
         <div class="landing-hero-copy">
-            <span class="eyebrow">Saúde da mulher com dados protegidos</span>
-            <h1 class="display-4 fw-bold">Ciclo &amp; Saúde</h1>
-            <p class="lead">Um ecossistema com app mobile para usuárias, aplicativo da clínica parceira e gerenciador web administrativo com logs, auditoria e controle de acessos.</p>
+            <span class="eyebrow">Cuidado acolhedor, seguro e simples</span>
+            <h1 class="display-4 fw-bold">Viva Plena</h1>
+            <p class="lead">Uma plataforma pensada para a rotina da paciente e da profissional: exames organizados, ciclo menstrual acompanhado com clareza, consultas registradas e acesso sempre sob autorização individual.</p>
             <div class="hero-actions landing-hero-actions">
-                <a class="btn btn-primary btn-lg" href="{% url 'login' %}">Entrar no gerenciador</a>
-                <a class="btn btn-outline-primary btn-lg" href="{% url 'register_patient' %}">Cadastro de apoio da usuária</a>
-                <a class="btn btn-light btn-lg" href="{% url 'register_clinic' %}">Cadastro de apoio da clínica</a>
+                <a class="btn btn-primary btn-lg" href="{% url 'login' %}">Entrar no painel</a>
+                <a class="btn btn-light btn-lg" href="{% url 'register_professional' %}">Solicitar acesso profissional</a>
+            </div>
+            <div class="hero-callout">
+                <strong>Privacidade no centro do cuidado</strong>
+                <p class="mb-0">Cada pedido de acesso é direcionado a uma profissional específica. A paciente aprova, recusa ou encerra quando quiser.</p>
             </div>
         </div>
         <div class="hero-metrics landing-hero-metrics">
             <div class="metric-card card border-0 shadow-sm">
                 <strong>{{ patient_count }}</strong>
-                <span>Usuárias cadastradas</span>
+                <span>Pacientes com acompanhamento ativo</span>
             </div>
             <div class="metric-card card border-0 shadow-sm">
-                <strong>{{ approved_clinics }}</strong>
-                <span>Clínicas parceiras aprovadas</span>
+                <strong>{{ approved_professionals }}</strong>
+                <span>Profissionais aprovadas</span>
             </div>
             <div class="metric-card card border-0 shadow-sm">
                 <strong>{{ exam_count }}</strong>
-                <span>Exames organizados</span>
+                <span>Exames organizados com segurança</span>
             </div>
         </div>
     </section>
 
     <section class="row g-4 mb-4">
         <article class="col-lg-4"><div class="info-card h-100 card border-0 shadow-sm">
-            <h3>App mobile da usuária</h3>
-            <p>Aplicativo Expo/React Native para exames, ciclo menstrual, consultas, notificações e controle de consentimentos.</p>
+            <h3>Aplicativo da paciente</h3>
+            <p>Uma experiência prática para registrar o ciclo, guardar exames, controlar permissões e acompanhar consultas sem complicação.</p>
         </div></article>
         <article class="col-lg-4"><div class="info-card h-100 card border-0 shadow-sm">
-            <h3>Aplicativo da clínica</h3>
-            <p>Aplicativo institucional conectado à API para solicitar acessos, visualizar exames autorizados, trocar mensagens e emitir relatórios.</p>
+            <h3>Área web profissional</h3>
+            <p>Permite solicitar acesso individual aos exames autorizados, conversar com pacientes e acompanhar o atendimento pelo navegador.</p>
         </div></article>
         <article class="col-lg-4"><div class="info-card h-100 card border-0 shadow-sm">
-            <h3>Gerenciador web</h3>
-            <p>Painel administrativo web com cards, tabelas, FAQ, aprovação de clínicas e consulta de logs do sistema.</p>
+            <h3>Painel administrativo</h3>
+            <p>Centraliza aprovações, contas, perguntas frequentes, relatórios e registros para uma gestão mais clara da plataforma.</p>
         </div></article>
+    </section>
+
+    <section class="journey-grid mb-4">
+        <article class="step-card">
+            <span class="badge">1</span>
+            <h3>Cadastre e organize</h3>
+            <p>Guarde exames, registre sintomas e mantenha informações importantes sempre acessíveis.</p>
+        </article>
+        <article class="step-card">
+            <span class="badge">2</span>
+            <h3>Autorize com segurança</h3>
+            <p>O acesso aos exames só acontece depois da decisão da paciente, profissional por profissional.</p>
+        </article>
+        <article class="step-card">
+            <span class="badge">3</span>
+            <h3>Acompanhe a rotina</h3>
+            <p>Consultas, avisos e histórico ficam reunidos em um fluxo mais intuitivo para o dia a dia.</p>
+        </article>
     </section>
 
     <section class="faq-preview mt-4">
         <div class="section-head">
             <h2>Perguntas frequentes</h2>
-            <a href="{% url 'faq_public' %}">Ver tudo</a>
+            <a href="{% url 'faq_public' %}">Ver todas</a>
         </div>
         <div class="stack">
             {% for faq in faqs %}
@@ -59,7 +80,7 @@
                 <p>{{ faq.answer }}</p>
             </article>
             {% empty %}
-            <article class="faq-item card border-0 shadow-sm"><p>Nenhuma FAQ publicada ainda.</p></article>
+            <article class="faq-item card border-0 shadow-sm"><p>Nenhuma pergunta publicada por enquanto.</p></article>
             {% endfor %}
         </div>
     </section>

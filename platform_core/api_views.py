@@ -25,14 +25,14 @@ from .api_serializers import (
     UserSummarySerializer,
 )
 from .models import AccessRequest, Appointment, AuditLog, CycleRecord, Exam, FAQ, MedicalHistory, SecureMessage, User
-from .services import ensure_patient_recurring_notifications, estimate_next_cycle, log_action, notify, should_block_login
+from .services import apply_exam_filters, ensure_patient_recurring_notifications, estimate_next_cycle, log_action, notify, should_block_login
 
 
 class PublicHealthAPIView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        return Response({"status": "ok", "project": "Ciclo & Saude"})
+        return Response({"status": "ok", "project": "Viva Plena"})
 
 
 class PublicFAQListAPIView(generics.ListAPIView):
@@ -46,7 +46,11 @@ class PublicApprovedClinicListAPIView(generics.ListAPIView):
     serializer_class = UserSummarySerializer
 
     def get_queryset(self):
-        return User.objects.filter(role=User.Role.CLINIC, approval_status=User.ApprovalStatus.APPROVED)
+        return User.objects.filter(
+            role=User.Role.CLINIC,
+            approval_status=User.ApprovalStatus.APPROVED,
+            institution_name__iexact="CESMAC",
+        )
 
 
 class PatientRegistrationAPIView(generics.CreateAPIView):
@@ -55,8 +59,8 @@ class PatientRegistrationAPIView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         user = serializer.save()
-        log_action(user, "Cadastro API de usuaria", "Nova conta criada pelo aplicativo mobile.", target_user=user, request=self.request)
-        notify(user, "admin", "Seu cadastro foi concluido com sucesso.")
+        log_action(user, "Cadastro via aplicativo", "Conta criada pelo aplicativo da paciente.", target_user=user, request=self.request)
+        notify(user, "admin", "Sua conta foi criada com sucesso. Quando quiser, abra o app para acompanhar seus dados.")
 
 
 class ClinicRegistrationAPIView(generics.CreateAPIView):
@@ -65,7 +69,13 @@ class ClinicRegistrationAPIView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         user = serializer.save()
-        log_action(user, "Cadastro API de clinica", "Nova clinica aguardando aprovacao.", target_user=user, request=self.request)
+        log_action(
+            user,
+            "Cadastro profissional via API",
+            "Solicitação de acesso profissional vinculada ao CESMAC aguardando análise da administração.",
+            target_user=user,
+            request=self.request,
+        )
 
 
 class TokenLoginAPIView(APIView):
@@ -77,7 +87,10 @@ class TokenLoginAPIView(APIView):
         user = User.objects.filter(email__iexact=email).first()
 
         if user and should_block_login(user):
-            return Response({"detail": "Acesso bloqueado temporariamente."}, status=status.HTTP_423_LOCKED)
+            return Response(
+                {"detail": "Seu acesso foi pausado por alguns minutos após várias tentativas seguidas. Tente novamente daqui a pouco."},
+                status=status.HTTP_423_LOCKED,
+            )
 
         if serializer.is_valid():
             user = serializer.validated_data["user"]
@@ -85,7 +98,7 @@ class TokenLoginAPIView(APIView):
             user.invalid_login_attempts = 0
             user.blocked_until = None
             user.save(update_fields=["invalid_login_attempts", "blocked_until", "updated_at"])
-            log_action(user, "Login API", "Autenticacao via token realizada com sucesso.", target_user=user, request=request)
+            log_action(user, "Login via token", "Acesso realizado com sucesso pelo aplicativo.", target_user=user, request=request)
             return Response({"token": token.key, "user": UserSummarySerializer(user).data})
 
         if user:
@@ -93,7 +106,7 @@ class TokenLoginAPIView(APIView):
             if user.invalid_login_attempts >= 5:
                 user.blocked_until = timezone.now() + timezone.timedelta(minutes=15)
             user.save(update_fields=["invalid_login_attempts", "blocked_until", "updated_at"])
-            log_action(user, "Falha de login API", "Credenciais invalidas na API.", target_user=user, request=request, level=AuditLog.Level.WARNING)
+            log_action(user, "Falha de login via API", "Tentativa de acesso com dados inválidos.", target_user=user, request=request, level=AuditLog.Level.WARNING)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -103,8 +116,8 @@ class LogoutAPIView(APIView):
 
     def post(self, request):
         Token.objects.filter(user=request.user).delete()
-        log_action(request.user, "Logout API", "Token invalido pelo usuario.", target_user=request.user, request=request)
-        return Response({"detail": "Token removido com sucesso."})
+        log_action(request.user, "Logout via API", "Token removido pela pessoa usuária.", target_user=request.user, request=request)
+        return Response({"detail": "Você saiu do aplicativo com sucesso."})
 
 
 class MeAPIView(APIView):
@@ -124,6 +137,7 @@ class PatientDashboardAPIView(APIView):
         data = {
             "exam_count": patient.exams.filter(status=Exam.Status.ACTIVE).count(),
             "clinic_links": patient.patient_requests.filter(status=AccessRequest.Status.APPROVED).count(),
+            "professional_links": patient.patient_requests.filter(status=AccessRequest.Status.APPROVED).count(),
             "medical_history_count": patient.medical_histories.filter(is_active=True).count(),
             "pending_requests": AccessRequestSerializer(patient.patient_requests.filter(status=AccessRequest.Status.PENDING), many=True).data,
             "next_cycle_date": estimate_next_cycle(patient.cycles.filter(is_active=True)),
@@ -140,12 +154,32 @@ class PatientExamListCreateAPIView(generics.ListCreateAPIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
-        return self.request.user.exams.all()
+        queryset = self.request.user.exams.filter(status=Exam.Status.ACTIVE)
+        return apply_exam_filters(queryset, self.request.query_params)
 
     def perform_create(self, serializer):
         exam = serializer.save(owner=self.request.user)
-        log_action(self.request.user, "Upload de exame API", f"Exame enviado: {exam.title}", target_user=self.request.user, request=self.request)
-        notify(self.request.user, "exam", f"O exame '{exam.title}' foi salvo com sucesso.")
+        log_action(self.request.user, "Envio de exame via API", f"Exame enviado: {exam.title}", target_user=self.request.user, request=self.request)
+        notify(self.request.user, "exam", f"Seu exame '{exam.title}' foi salvo com sucesso.")
+
+
+class PatientExamDestroyAPIView(generics.DestroyAPIView):
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    permission_classes = [IsPatientRole]
+    serializer_class = ExamSerializer
+
+    def get_queryset(self):
+        return self.request.user.exams.filter(status=Exam.Status.ACTIVE)
+
+    def perform_destroy(self, instance):
+        exam_title = instance.title
+        if instance.file:
+            instance.file.delete(save=False)
+        instance.status = Exam.Status.DELETED
+        instance.deleted_at = timezone.now()
+        instance.save(update_fields=["file", "status", "deleted_at"])
+        log_action(self.request.user, "Remocao de exame via API", f"Exame removido: {exam_title}", target_user=self.request.user, request=self.request)
+        notify(self.request.user, "exam", f"Seu exame '{exam_title}' foi removido.")
 
 
 class PatientCycleListCreateAPIView(generics.ListCreateAPIView):
@@ -158,7 +192,7 @@ class PatientCycleListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         cycle = serializer.save(owner=self.request.user)
-        log_action(self.request.user, "Registro de ciclo API", "Ciclo menstrual adicionado via API.", target_user=self.request.user, request=self.request)
+        log_action(self.request.user, "Registro de ciclo via API", "Novo ciclo menstrual registrado.", target_user=self.request.user, request=self.request)
         notify(self.request.user, "cycle", "Seu ciclo foi registrado com sucesso.")
 
 
@@ -172,7 +206,7 @@ class PatientHistoryListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         history = serializer.save(patient=self.request.user)
-        log_action(self.request.user, "Historico medico API", f"Registro medico criado: {history.description}", target_user=self.request.user, request=self.request)
+        log_action(self.request.user, "Histórico de saúde via API", f"Novo registro salvo: {history.description}", target_user=self.request.user, request=self.request)
 
 
 class PatientAccessRequestListAPIView(generics.ListAPIView):
@@ -196,22 +230,42 @@ class PatientAccessRequestDecisionAPIView(APIView):
             access.status = AccessRequest.Status.APPROVED
             access.responded_at = timezone.now()
             access.save(update_fields=["status", "responded_at"])
-            notify(access.clinic, "access", f"A paciente {request.user.full_name} aprovou o acesso.")
-            log_action(request.user, "Aprovacao de acesso API", f"Acesso aprovado para {access.clinic.full_name}", target_user=access.clinic, request=request)
+            notify(access.professional, "access", f"A paciente {request.user.full_name} autorizou você a acessar os exames dela.")
+            log_action(
+                request.user,
+                "Aprovação de acesso via API",
+                f"Acesso individual liberado para {access.professional.full_name}",
+                target_user=access.professional,
+                request=request,
+            )
         elif action == "reject":
             access.status = AccessRequest.Status.REJECTED
             access.responded_at = timezone.now()
             access.save(update_fields=["status", "responded_at"])
-            notify(access.clinic, "access", f"A paciente {request.user.full_name} recusou o acesso.")
-            log_action(request.user, "Recusa de acesso API", f"Acesso recusado para {access.clinic.full_name}", target_user=access.clinic, request=request, level=AuditLog.Level.WARNING)
+            notify(access.professional, "access", f"A paciente {request.user.full_name} não autorizou o acesso aos exames dela.")
+            log_action(
+                request.user,
+                "Recusa de acesso via API",
+                f"Acesso recusado para {access.professional.full_name}",
+                target_user=access.professional,
+                request=request,
+                level=AuditLog.Level.WARNING,
+            )
         elif action == "revoke":
             access.status = AccessRequest.Status.REVOKED
             access.responded_at = timezone.now()
             access.save(update_fields=["status", "responded_at"])
-            notify(access.clinic, "security", f"O acesso da clinica a paciente {request.user.full_name} foi revogado.", is_critical=True)
-            log_action(request.user, "Revogacao de acesso API", f"Acesso revogado para {access.clinic.full_name}", target_user=access.clinic, request=request, level=AuditLog.Level.WARNING)
+            notify(access.professional, "security", f"A paciente {request.user.full_name} encerrou seu acesso aos exames dela.", is_critical=True)
+            log_action(
+                request.user,
+                "Revogação de acesso via API",
+                f"Acesso encerrado para {access.professional.full_name}",
+                target_user=access.professional,
+                request=request,
+                level=AuditLog.Level.WARNING,
+            )
         else:
-            return Response({"detail": "Acao invalida."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "A ação informada não é válida."}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(AccessRequestSerializer(access).data)
 
@@ -222,13 +276,48 @@ class PatientAppointmentListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = AppointmentSerializer
 
     def get_queryset(self):
+        return self.request.user.appointments.filter(hidden_by_patient_at__isnull=True).select_related("clinic")
+
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {
+                "detail": (
+                    "As consultas são agendadas apenas pela profissional. "
+                    "No aplicativo, você pode apenas acompanhar os horários já marcados."
+                )
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+
+class PatientAppointmentDestroyAPIView(generics.DestroyAPIView):
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    permission_classes = [IsPatientRole]
+    serializer_class = AppointmentSerializer
+
+    def get_queryset(self):
         return self.request.user.appointments.select_related("clinic")
 
-    def perform_create(self, serializer):
-        appointment = serializer.save(patient=self.request.user)
-        notify(self.request.user, "appointment", "Sua consulta foi agendada com sucesso.")
-        notify(appointment.clinic, "appointment", f"Nova consulta agendada por {self.request.user.full_name}.")
-        log_action(self.request.user, "Agendamento de consulta API", f"Consulta com {appointment.clinic.full_name}", target_user=appointment.clinic, request=self.request)
+    def delete(self, request, *args, **kwargs):
+        appointment = self.get_object()
+        if appointment.status != Appointment.Status.CANCELLED:
+            return Response(
+                {"detail": "Somente consultas canceladas podem ser removidas da sua lista."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not appointment.hidden_by_patient_at:
+            appointment.hidden_by_patient_at = timezone.now()
+            appointment.save(update_fields=["hidden_by_patient_at"])
+            log_action(
+                request.user,
+                "Ocultacao de consulta cancelada via API",
+                f"Consulta cancelada removida da lista: {appointment.specialist}",
+                target_user=request.user,
+                request=request,
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class PatientNotificationListAPIView(generics.ListAPIView):
@@ -247,7 +336,35 @@ class PatientNotificationMarkAllReadAPIView(APIView):
 
     def post(self, request):
         updated = request.user.notifications.filter(read_at__isnull=True).update(read_at=timezone.now())
-        return Response({"updated": updated})
+        return Response({"detail": "Seus avisos foram marcados como lidos.", "updated": updated})
+
+
+class PatientNotificationDestroyAPIView(generics.DestroyAPIView):
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    permission_classes = [IsPatientRole]
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        return self.request.user.notifications.all()
+
+    def delete(self, request, *args, **kwargs):
+        notification = self.get_object()
+        if not notification.read_at:
+            return Response(
+                {"detail": "Marque o aviso como lido antes de apagar esse item."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        message = notification.message
+        notification.delete()
+        log_action(
+            request.user,
+            "Exclusao de aviso via API",
+            f"Aviso removido: {message}",
+            target_user=request.user,
+            request=request,
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class PatientMessageListCreateAPIView(generics.ListCreateAPIView):
@@ -260,8 +377,8 @@ class PatientMessageListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         message = serializer.save(sender=self.request.user)
-        notify(message.recipient, "admin", f"Nova mensagem segura de {self.request.user.full_name}.")
-        log_action(self.request.user, "Mensagem segura API", f"Mensagem enviada para {message.recipient.full_name}", target_user=message.recipient, request=self.request)
+        notify(message.recipient, "admin", f"Você recebeu uma nova mensagem segura de {self.request.user.full_name}.")
+        log_action(self.request.user, "Mensagem segura via API", f"Mensagem enviada para {message.recipient.full_name}", target_user=message.recipient, request=self.request)
 
 
 class ClinicDashboardAPIView(APIView):
@@ -271,7 +388,7 @@ class ClinicDashboardAPIView(APIView):
     def get(self, request):
         clinic = request.user
         if clinic.approval_status != User.ApprovalStatus.APPROVED:
-            return Response({"pending_approval": True, "detail": "Clinica aguardando aprovacao administrativa."})
+            return Response({"pending_approval": True, "detail": "Seu acesso profissional ainda está em análise pela administração."})
 
         approved_patient_ids = clinic.clinic_requests.filter(status=AccessRequest.Status.APPROVED).values_list("patient_id", flat=True)
         data = {
@@ -294,10 +411,15 @@ class ClinicAccessRequestListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         if self.request.user.approval_status != User.ApprovalStatus.APPROVED:
-            raise PermissionDenied("Sua clinica ainda nao foi aprovada.")
+            raise PermissionDenied("Seu acesso profissional ainda está em análise e não pode enviar pedidos de acesso por enquanto.")
         access = serializer.save()
-        notify(access.patient, "access", f"A clinica {self.request.user.full_name} solicitou acesso aos seus exames.", is_critical=True)
-        log_action(self.request.user, "Solicitacao de acesso API", f"Acesso solicitado para {access.patient.full_name}", target_user=access.patient, request=self.request)
+        notify(
+            access.patient,
+            "access",
+            f"{self.request.user.full_name}, profissional do CESMAC, pediu acesso aos seus exames. Só ela poderá visualizar esse conteúdo se você aprovar.",
+            is_critical=True,
+        )
+        log_action(self.request.user, "Solicitação de acesso via API", f"Pedido enviado para {access.patient.full_name}", target_user=access.patient, request=self.request)
 
 
 class ClinicExamListAPIView(generics.ListAPIView):
@@ -310,10 +432,18 @@ class ClinicExamListAPIView(generics.ListAPIView):
             return Exam.objects.none()
         approved_ids = self.request.user.clinic_requests.filter(status=AccessRequest.Status.APPROVED).values_list("patient_id", flat=True)
         queryset = Exam.objects.filter(owner_id__in=approved_ids, status=Exam.Status.ACTIVE).select_related("owner")
-        patient_id = self.request.query_params.get("patient_id")
-        if patient_id:
-            queryset = queryset.filter(owner_id=patient_id)
-        return queryset
+        return apply_exam_filters(queryset, self.request.query_params, patient_param="patient_id")
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        response = super().list(request, *args, **kwargs)
+        log_action(
+            request.user,
+            "Consulta de exames via API",
+            f"Profissional consultou {queryset.count()} exame(s) dentro dos acessos aprovados.",
+            request=request,
+        )
+        return response
 
 
 class ClinicMessageListCreateAPIView(generics.ListCreateAPIView):
@@ -326,8 +456,8 @@ class ClinicMessageListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         message = serializer.save(sender=self.request.user)
-        notify(message.recipient, "admin", f"Nova mensagem segura de {self.request.user.full_name}.")
-        log_action(self.request.user, "Mensagem segura API", f"Mensagem enviada para {message.recipient.full_name}", target_user=message.recipient, request=self.request)
+        notify(message.recipient, "admin", f"Você recebeu uma nova mensagem segura de {self.request.user.full_name}.")
+        log_action(self.request.user, "Mensagem segura via API", f"Mensagem enviada para {message.recipient.full_name}", target_user=message.recipient, request=self.request)
 
 
 class ClinicReportAPIView(APIView):
@@ -343,6 +473,7 @@ class ClinicReportAPIView(APIView):
                 "approved_count": approved_requests.count(),
                 "exams_count": exams_count,
                 "appointments_count": appointments_count,
+                "institution_name": "CESMAC",
             }
         )
 
@@ -355,8 +486,13 @@ class AdminDashboardAPIView(APIView):
         data = {
             "patient_count": User.objects.filter(role=User.Role.PATIENT).count(),
             "clinic_count": User.objects.filter(role=User.Role.CLINIC).count(),
+            "professional_count": User.objects.filter(role=User.Role.CLINIC).count(),
             "exam_count": Exam.objects.filter(status=Exam.Status.ACTIVE).count(),
             "pending_clinics": UserSummarySerializer(
+                User.objects.filter(role=User.Role.CLINIC, approval_status=User.ApprovalStatus.PENDING),
+                many=True,
+            ).data,
+            "pending_professionals": UserSummarySerializer(
                 User.objects.filter(role=User.Role.CLINIC, approval_status=User.ApprovalStatus.PENDING),
                 many=True,
             ).data,
@@ -387,21 +523,21 @@ class AdminClinicDecisionAPIView(APIView):
             clinic.approval_status = User.ApprovalStatus.APPROVED
             clinic.is_active = True
             clinic.save(update_fields=["approval_status", "is_active", "updated_at"])
-            notify(clinic, "admin", "Sua clinica foi aprovada e ja pode acessar o sistema.")
-            log_action(request.user, "Aprovacao de clinica API", f"Clinica aprovada: {clinic.full_name}", target_user=clinic, request=request)
+            notify(clinic, "admin", "Seu acesso profissional foi aprovado e já pode ser usado no ambiente do CESMAC.")
+            log_action(request.user, "Aprovação profissional via API", f"Profissional aprovada: {clinic.full_name}", target_user=clinic, request=request)
         elif action == "reject":
             clinic.approval_status = User.ApprovalStatus.REJECTED
             clinic.save(update_fields=["approval_status", "updated_at"])
-            notify(clinic, "admin", "Sua solicitacao de cadastro foi recusada.", is_critical=True)
-            log_action(request.user, "Recusa de clinica API", f"Clinica recusada: {clinic.full_name}", target_user=clinic, request=request, level=AuditLog.Level.WARNING)
+            notify(clinic, "admin", "Seu cadastro profissional não foi aprovado.", is_critical=True)
+            log_action(request.user, "Recusa profissional via API", f"Profissional recusada: {clinic.full_name}", target_user=clinic, request=request, level=AuditLog.Level.WARNING)
         elif action == "suspend":
             clinic.approval_status = User.ApprovalStatus.SUSPENDED
             clinic.is_active = False
             clinic.save(update_fields=["approval_status", "is_active", "updated_at"])
-            notify(clinic, "security", "Sua conta foi suspensa pelo administrador.", is_critical=True)
-            log_action(request.user, "Suspensao de clinica API", f"Clinica suspensa: {clinic.full_name}", target_user=clinic, request=request, level=AuditLog.Level.WARNING)
+            notify(clinic, "security", "Seu acesso profissional foi suspenso pela administração.", is_critical=True)
+            log_action(request.user, "Suspensão profissional via API", f"Profissional suspensa: {clinic.full_name}", target_user=clinic, request=request, level=AuditLog.Level.WARNING)
         else:
-            return Response({"detail": "Acao invalida."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "A ação informada não é válida."}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(UserSummarySerializer(clinic).data)
 
@@ -427,7 +563,7 @@ class AdminAccountToggleAPIView(APIView):
         else:
             target.approval_status = User.ApprovalStatus.APPROVED
         target.save(update_fields=["is_active", "approval_status", "updated_at"])
-        log_action(request.user, "Alteracao de status API", f"Conta atualizada: {target.full_name}", target_user=target, request=request)
+        log_action(request.user, "Alteração de status via API", f"Conta atualizada: {target.full_name}", target_user=target, request=request)
         return Response(UserSummarySerializer(target).data)
 
 
@@ -452,7 +588,7 @@ class AdminFAQListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         faq = serializer.save()
-        log_action(self.request.user, "FAQ API", f"Pergunta salva: {faq.question}", request=self.request)
+        log_action(self.request.user, "FAQ via API", f"Pergunta salva: {faq.question}", request=self.request)
 
 
 class AdminReportAPIView(APIView):
@@ -464,7 +600,9 @@ class AdminReportAPIView(APIView):
             "users": User.objects.count(),
             "patients": User.objects.filter(role=User.Role.PATIENT).count(),
             "clinics": User.objects.filter(role=User.Role.CLINIC).count(),
+            "professionals": User.objects.filter(role=User.Role.CLINIC).count(),
             "approved_clinics": User.objects.filter(role=User.Role.CLINIC, approval_status=User.ApprovalStatus.APPROVED).count(),
+            "approved_professionals": User.objects.filter(role=User.Role.CLINIC, approval_status=User.ApprovalStatus.APPROVED).count(),
             "exams": Exam.objects.filter(status=Exam.Status.ACTIVE).count(),
             "appointments": Appointment.objects.count(),
             "logs": AuditLog.objects.count(),

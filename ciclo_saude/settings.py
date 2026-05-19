@@ -1,14 +1,28 @@
 import os
+import sys
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "django-insecure-ciclo-saude-dev-key"
-DEBUG = True
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "testserver", "192.168.0.7"]
+
+def env_flag(name, default=False):
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-viva-plena-dev-key")
+DEBUG = env_flag("DJANGO_DEBUG", default=True)
+default_allowed_hosts = ["127.0.0.1", "localhost", "testserver"]
 extra_allowed_hosts = [host.strip() for host in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if host.strip()]
-ALLOWED_HOSTS.extend(extra_allowed_hosts)
+if DEBUG:
+    # In local development we often access the backend from phones/emulators on the LAN.
+    ALLOWED_HOSTS = ["*"]
+else:
+    ALLOWED_HOSTS = list(dict.fromkeys(default_allowed_hosts + extra_allowed_hosts))
 
 
 INSTALLED_APPS = [
@@ -54,12 +68,53 @@ TEMPLATES = [
 WSGI_APPLICATION = "ciclo_saude.wsgi.application"
 
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+def build_database_config():
+    database_url = os.getenv("DATABASE_URL", "").strip()
+    if database_url:
+        parsed = urlparse(database_url)
+        scheme = parsed.scheme.lower()
+        engine_map = {
+            "postgres": "django.db.backends.postgresql",
+            "postgresql": "django.db.backends.postgresql",
+            "pgsql": "django.db.backends.postgresql",
+            "sqlite": "django.db.backends.sqlite3",
+            "sqlite3": "django.db.backends.sqlite3",
+        }
+        if scheme not in engine_map:
+            raise ValueError("DATABASE_URL precisa usar um esquema compatível, como postgresql:// ou sqlite:///.")
+        if engine_map[scheme] == "django.db.backends.sqlite3":
+            return {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": parsed.path.lstrip("/") or ":memory:",
+            }
+        return {
+            "ENGINE": engine_map[scheme],
+            "NAME": parsed.path.lstrip("/"),
+            "USER": unquote(parsed.username or ""),
+            "PASSWORD": unquote(parsed.password or ""),
+            "HOST": parsed.hostname or "",
+            "PORT": str(parsed.port or ""),
+            "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),
+        }
+
+    if "test" in sys.argv:
+        return {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+        }
+
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "viva_plena"),
+        "USER": os.getenv("POSTGRES_USER", "postgres"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
+        "HOST": os.getenv("POSTGRES_HOST", "127.0.0.1"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "60")),
     }
-}
+
+
+DATABASES = {"default": build_database_config()}
 
 
 AUTH_PASSWORD_VALIDATORS = [

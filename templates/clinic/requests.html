@@ -1,9 +1,14 @@
 {% extends 'clinic/base.html' %}
-{% block clinic_title %}Solicitacoes de acesso{% endblock %}
+{% block clinic_title %}Pedidos de acesso{% endblock %}
 {% block clinic_content %}
-<section class="dashboard-grid">
-    <article class="form-card card border-0 shadow-sm">
-        <h3>Nova solicitacao</h3>
+<section class="dashboard-grid mb-4">
+    <article class="form-card">
+        <div class="section-head">
+            <div>
+                <h3>Novo pedido</h3>
+                <p class="section-copy">Informe o CPF da paciente e, se quiser, explique o motivo da solicitação de acesso.</p>
+            </div>
+        </div>
         <form method="post" class="form-grid">
             {% csrf_token %}
             {% for field in form %}
@@ -13,19 +18,24 @@
                 {% if field.errors %}<small class="field-error">{{ field.errors|join:', ' }}</small>{% endif %}
             </div>
             {% endfor %}
-            <button class="btn btn-primary" type="submit">Solicitar acesso</button>
+            <button class="btn btn-primary" type="submit">Enviar pedido</button>
         </form>
     </article>
-    <article class="table-card card border-0 shadow-sm">
-        <h3>Historico</h3>
+    <article class="table-card">
+        <div class="section-head">
+            <div>
+                <h3>Pedidos enviados</h3>
+                <p class="section-copy">Acompanhe o status e o horário em que cada solicitação foi registrada.</p>
+            </div>
+        </div>
         <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
-            <thead><tr><th>Paciente</th><th>Status</th><th>Solicitado em</th></tr></thead>
+            <thead><tr><th>Paciente</th><th>Status</th><th>Enviado em</th></tr></thead>
             <tbody>
                 {% for item in requests_list %}
                 <tr><td>{{ item.patient.full_name }}</td><td><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span></td><td>{{ item.requested_at|date:"d/m/Y H:i" }}</td></tr>
                 {% empty %}
-                <tr><td colspan="3">Nenhuma solicitacao enviada.</td></tr>
+                <tr><td colspan="3">Você ainda não enviou pedidos de acesso.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

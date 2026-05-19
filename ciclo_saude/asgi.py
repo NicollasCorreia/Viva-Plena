@@ -1,5 +1,5 @@
 """
-ASGI config for ciclo_saude project.
+ASGI config for Viva Plena.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 

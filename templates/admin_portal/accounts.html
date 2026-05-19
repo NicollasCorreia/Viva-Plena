@@ -1,17 +1,109 @@
 {% extends 'admin_portal/base.html' %}
 {% block admin_title %}Contas da plataforma{% endblock %}
-{% block admin_subtitle %}Controle visual de contas por perfil, com status claro e ação direta para ativar ou suspender acessos.{% endblock %}
+{% block admin_subtitle %}Crie novas administradoras, promova contas existentes e ajuste acessos com rastreabilidade.{% endblock %}
 {% block admin_content %}
-<article class="table-card admin-panel card border-0 shadow-sm">
+<section class="dashboard-grid mb-4">
+    <article class="form-card">
+        <div class="section-head">
+            <div>
+                <h3>Nova administradora</h3>
+                <p class="section-copy">Crie um acesso administrativo dedicado para o gerenciador, sem abrir cadastro público para esse perfil.</p>
+            </div>
+        </div>
+        <form method="post" class="form-grid">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_admin">
+            {% for field in admin_form %}
+            <div class="field">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+                {% if field.errors %}<small class="field-error">{{ field.errors|join:', ' }}</small>{% endif %}
+            </div>
+            {% endfor %}
+            <button class="btn btn-primary w-100 mt-2" type="submit">Criar administradora</button>
+        </form>
+    </article>
+
+    <article class="table-card admin-panel">
+        <div class="section-head">
+            <div>
+                <h3>Administradoras ativas e suspensas</h3>
+                <p class="section-copy">Toda alteração feita aqui fica registrada nos logs. A própria conta atual não pode ser suspensa ou rebaixada por esta tela.</p>
+            </div>
+        </div>
+        <div class="table-responsive">
+        <table class="table admin-table table-hover align-middle mb-0">
+            <thead><tr><th>Nome</th><th>E-mail</th><th>Status</th><th>Acesso Django</th><th>Ações</th></tr></thead>
+            <tbody>
+                {% for item in admins %}
+                <tr>
+                    <td>
+                        {{ item.full_name }}
+                        {% if item.id == request.user.id %}<div class="muted">Conta atual</div>{% endif %}
+                    </td>
+                    <td>{{ item.email }}</td>
+                    <td>
+                        <span class="status {% if item.is_active %}status-active{% else %}status-suspended{% endif %}">
+                            {% if item.is_active %}Ativa{% else %}Suspensa{% endif %}
+                        </span>
+                    </td>
+                    <td>{% if item.is_superuser %}Superusuária{% elif item.is_staff %}Staff{% else %}Sem acesso{% endif %}</td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% if item.is_active %}
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="user_id" value="{{ item.id }}">
+                                <input type="hidden" name="action" value="suspend_admin">
+                                <button class="btn btn-secondary btn-sm" type="submit" {% if item.id == request.user.id %}disabled{% endif %}>Suspender</button>
+                            </form>
+                            {% else %}
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="user_id" value="{{ item.id }}">
+                                <input type="hidden" name="action" value="reactivate_admin">
+                                <button class="btn btn-secondary btn-sm" type="submit">Reativar</button>
+                            </form>
+                            {% endif %}
+
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="user_id" value="{{ item.id }}">
+                                <input type="hidden" name="action" value="demote_admin">
+                                <input type="hidden" name="target_role" value="patient">
+                                <button class="btn btn-light btn-sm" type="submit" {% if item.id == request.user.id %}disabled{% endif %}>Rebaixar para paciente</button>
+                            </form>
+
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="user_id" value="{{ item.id }}">
+                                <input type="hidden" name="action" value="demote_admin">
+                                <input type="hidden" name="target_role" value="clinic">
+                                <button class="btn btn-light btn-sm" type="submit" {% if item.id == request.user.id %}disabled{% endif %}>Rebaixar para profissional</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="empty-note">Nenhuma conta administrativa encontrada.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </article>
+</section>
+
+<article class="table-card admin-panel mb-4">
     <div class="section-head">
         <div>
-            <h3>Usuários e clínicas</h3>
-            <p class="section-copy">Visão centralizada dos perfis operacionais disponíveis fora da conta administrativa.</p>
+            <h3>Pacientes e profissionais</h3>
+            <p class="section-copy">Promova contas existentes para administração ou ajuste o status de acesso quando necessário.</p>
         </div>
     </div>
     <div class="table-responsive">
     <table class="table admin-table table-hover align-middle mb-0">
-        <thead><tr><th>Nome</th><th>Perfil</th><th>E-mail</th><th>Status</th><th>Acao</th></tr></thead>
+        <thead><tr><th>Nome</th><th>Perfil</th><th>E-mail</th><th>Status</th><th>Ações</th></tr></thead>
         <tbody>
             {% for item in users %}
             <tr>
@@ -20,11 +112,24 @@
                 <td>{{ item.email }}</td>
                 <td><span class="status {% if item.is_active %}status-active{% else %}status-suspended{% endif %}">{% if item.is_active %}Ativo{% else %}Suspenso{% endif %}</span></td>
                 <td>
-                    <form method="post">{% csrf_token %}<input type="hidden" name="user_id" value="{{ item.id }}"><input type="hidden" name="action" value="toggle"><button class="btn btn-secondary btn-sm" type="submit">Alternar status</button></form>
+                    <div class="d-flex flex-wrap gap-2">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="user_id" value="{{ item.id }}">
+                            <input type="hidden" name="action" value="promote_admin">
+                            <button class="btn btn-primary btn-sm" type="submit">Promover para admin</button>
+                        </form>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="user_id" value="{{ item.id }}">
+                            <input type="hidden" name="action" value="toggle">
+                            <button class="btn btn-secondary btn-sm" type="submit">Alterar status</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="5" class="empty-note">Nenhum registro encontrado.</td></tr>
+            <tr><td colspan="5" class="empty-note">Nenhuma conta encontrada.</td></tr>
             {% endfor %}
         </tbody>
     </table>

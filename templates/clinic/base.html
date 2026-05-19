@@ -3,25 +3,29 @@
 {% block body_class %}dashboard-body{% endblock %}
 
 {% block content %}
+{% with current=request.resolver_match.url_name %}
 <main class="dashboard-layout container-fluid px-0">
     <aside class="sidebar d-flex flex-column">
         <div class="sidebar-brand">
-            <span class="eyebrow">Apoio web</span>
-            <h2>Clinica</h2>
+            <span class="eyebrow">Área profissional web</span>
+            <h2>Profissional CESMAC</h2>
+            <p class="sidebar-copy">Acompanhe solicitações, exames autorizados, mensagens e indicadores do atendimento.</p>
         </div>
         <nav class="sidebar-nav nav flex-column gap-2">
-            <a class="nav-link" href="{% url 'clinic_dashboard' %}">Visao geral</a>
-            <a class="nav-link" href="{% url 'clinic_requests' %}">Solicitacoes</a>
-            <a class="nav-link" href="{% url 'clinic_exams' %}">Exames autorizados</a>
-            <a class="nav-link" href="{% url 'clinic_messages' %}">Mensagens</a>
-            <a class="nav-link" href="{% url 'clinic_reports' %}">Relatorios</a>
+            <a class="nav-link {% if current == 'professional_dashboard' %}active{% endif %}" href="{% url 'professional_dashboard' %}">Visão geral</a>
+            <a class="nav-link {% if current == 'professional_appointments' %}active{% endif %}" href="{% url 'professional_appointments' %}">Consultas</a>
+            <a class="nav-link {% if current == 'professional_requests' %}active{% endif %}" href="{% url 'professional_requests' %}">Pedidos de acesso</a>
+            <a class="nav-link {% if current == 'professional_exams' %}active{% endif %}" href="{% url 'professional_exams' %}">Exames das Pacientes</a>
+            <a class="nav-link {% if current == 'professional_messages' %}active{% endif %}" href="{% url 'professional_messages' %}">Mensagens</a>
+            <a class="nav-link {% if current == 'professional_reports' %}active{% endif %}" href="{% url 'professional_reports' %}">Relatórios</a>
         </nav>
     </aside>
     <section class="dashboard-content">
-        <header class="topbar card shadow-sm border-0">
+        <header class="topbar">
             <div>
-                <span class="eyebrow">Homologacao interna do app da clinica</span>
-                <h1 class="h3 mb-0">{% block clinic_title %}Painel web de apoio da clinica{% endblock %}</h1>
+                <span class="eyebrow">Acesso oficial pela web</span>
+                <h1 class="h3 mb-0">{% block clinic_title %}Painel profissional{% endblock %}</h1>
+                <p class="topbar-subtitle mb-0">Tudo o que você precisa para acompanhar pacientes e pedidos de acesso em um só lugar.</p>
             </div>
             <div class="header-actions">
                 <span class="badge text-bg-primary">{{ request.user.full_name }}</span>
@@ -31,4 +35,5 @@
         {% block clinic_content %}{% endblock %}
     </section>
 </main>
+{% endwith %}
 {% endblock %}

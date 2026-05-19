@@ -1,16 +1,20 @@
 {% extends 'base.html' %}
-{% block title %}Cadastro da clínica{% endblock %}
+{% block title %}Cadastro profissional{% endblock %}
 {% block body_class %}auth-body{% endblock %}
 {% block content %}
 <main class="center-shell container py-4">
     <section class="form-card wide card border-0 shadow-lg">
         <div class="page-head">
             <div>
-                <span class="eyebrow">Aplicativo da clínica</span>
-                <h1>Solicitar cadastro da clínica parceira</h1>
-                <p class="text-muted mb-0">A operação da clínica acontece no aplicativo institucional. Este cadastro web foi mantido como apoio para homologação e testes da API.</p>
+                <span class="eyebrow">Área profissional web</span>
+                <h1>Solicitar acesso profissional</h1>
+                <p class="text-muted mb-0">A rotina da profissional acontece diretamente pela web. Preencha seus dados para solicitar acesso ao ambiente do CESMAC com mais agilidade.</p>
             </div>
             <a class="btn btn-outline-secondary" href="{% url 'home' %}">Voltar</a>
+        </div>
+        <div class="info-strip">
+            <span class="badge">Fluxo de análise</span>
+            <p class="mb-0">Depois do envio, a equipe administrativa revisa o cadastro antes de liberar o acesso completo ao painel profissional.</p>
         </div>
         <form method="post" class="form-grid two-columns">
             {% csrf_token %}
@@ -18,11 +22,12 @@
             <div class="field">
                 <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                 {{ field }}
+                {% if field.help_text %}<small class="text-muted">{{ field.help_text|safe }}</small>{% endif %}
                 {% if field.errors %}<small class="field-error">{{ field.errors|join:', ' }}</small>{% endif %}
             </div>
             {% endfor %}
             <div class="full-row">
-                <button class="btn btn-primary" type="submit">Enviar para aprovação</button>
+                <button class="btn btn-primary" type="submit">Enviar para análise</button>
             </div>
         </form>
     </section>

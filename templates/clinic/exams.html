@@ -1,9 +1,12 @@
 {% extends 'clinic/base.html' %}
-{% block clinic_title %}Exames autorizados{% endblock %}
+{% block clinic_title %}Exames liberados{% endblock %}
 {% block clinic_content %}
-<article class="table-card card border-0 shadow-sm">
+<article class="table-card">
     <div class="section-head">
-        <h3>Lista de exames</h3>
+        <div>
+            <h3>Exames disponíveis</h3>
+            <p class="section-copy">Filtre por paciente, intervalo de datas e veja primeiro os arquivos mais recentes.</p>
+        </div>
         <form method="get" class="inline-filter">
             <select name="patient">
                 <option value="">Todas as pacientes</option>
@@ -11,12 +14,21 @@
                 <option value="{{ item.patient.id }}" {% if selected_patient_id == item.patient.id|stringformat:'s' %}selected{% endif %}>{{ item.patient.full_name }}</option>
                 {% endfor %}
             </select>
+            <input type="date" name="performed_from" value="{{ performed_from }}" aria-label="Data inicial do exame">
+            <input type="date" name="performed_to" value="{{ performed_to }}" aria-label="Data final do exame">
+            <select name="sort" aria-label="Ordenação dos exames">
+                <option value="recent_upload" {% if selected_sort == "recent_upload" %}selected{% endif %}>Arquivos mais recentes</option>
+                <option value="recent_exam" {% if selected_sort == "recent_exam" %}selected{% endif %}>Data do exame mais recente</option>
+                <option value="oldest_exam" {% if selected_sort == "oldest_exam" %}selected{% endif %}>Data do exame mais antiga</option>
+                <option value="oldest_upload" {% if selected_sort == "oldest_upload" %}selected{% endif %}>Uploads mais antigos</option>
+            </select>
             <button class="btn btn-secondary btn-sm" type="submit">Filtrar</button>
+            <a class="btn btn-light btn-sm" href="{% url 'professional_exams' %}">Limpar</a>
         </form>
     </div>
     <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
-        <thead><tr><th>Paciente</th><th>Titulo</th><th>Tipo</th><th>Data</th><th>Arquivo</th></tr></thead>
+        <thead><tr><th>Paciente</th><th>Nome</th><th>Tipo</th><th>Data</th><th>Arquivo</th></tr></thead>
         <tbody>
             {% for exam in exams %}
             <tr>
@@ -27,7 +39,7 @@
                 <td><a href="{{ exam.file.url }}">Abrir</a></td>
             </tr>
             {% empty %}
-            <tr><td colspan="5">Nenhum exame acessivel no momento.</td></tr>
+            <tr><td colspan="5">Nenhum exame foi liberado até agora.</td></tr>
             {% endfor %}
         </tbody>
     </table>

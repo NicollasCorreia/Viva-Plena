@@ -1,26 +1,26 @@
 {% extends 'admin_portal/base.html' %}
-{% block admin_title %}Logs e auditoria{% endblock %}
-{% block admin_subtitle %}Consulta de eventos do sistema com filtragem por severidade, reforçando a rastreabilidade mostrada na referência visual.{% endblock %}
+{% block admin_title %}Logs e acompanhamento{% endblock %}
+{% block admin_subtitle %}Consulte os acontecimentos do sistema e filtre o nível de atenção quando precisar investigar algo.{% endblock %}
 {% block admin_content %}
-<article class="table-card admin-panel card border-0 shadow-sm">
+<article class="table-card admin-panel">
     <div class="section-head">
         <div>
-            <h3>Eventos do sistema</h3>
-            <p class="section-copy">Use o filtro para isolar alertas críticos e evidências de operação.</p>
+            <h3>Registros do sistema</h3>
+            <p class="section-copy">Use o filtro para focar nos registros mais relevantes.</p>
         </div>
-        <form method="get" class="inline-filter admin-filter">
-            <select name="level">
+        <form method="get" class="inline-filter admin-filter d-flex flex-nowrap align-items-center mb-0" style="gap: 0.5rem;">
+            <select name="level" class="form-select w-auto mb-0" style="min-width: 140px; padding: 0.5rem 1rem;">
                 <option value="">Todos</option>
-                <option value="info" {% if level == 'info' %}selected{% endif %}>Informação</option>
-                <option value="warning" {% if level == 'warning' %}selected{% endif %}>Alerta</option>
+                <option value="info" {% if level == 'info' %}selected{% endif %}>Informativo</option>
+                <option value="warning" {% if level == 'warning' %}selected{% endif %}>Atenção</option>
                 <option value="critical" {% if level == 'critical' %}selected{% endif %}>Crítico</option>
             </select>
-            <button class="btn btn-secondary btn-sm" type="submit">Filtrar</button>
+            <button class="btn btn-secondary btn-sm mb-0" type="submit">Filtrar</button>
         </form>
     </div>
     <div class="table-responsive">
     <table class="table admin-table table-hover align-middle mb-0">
-        <thead><tr><th>Data</th><th>Ação</th><th>Ator</th><th>Alvo</th><th>Nível</th></tr></thead>
+        <thead><tr><th>Data</th><th>Ação</th><th>Quem fez</th><th>Alvo</th><th>Nível</th></tr></thead>
         <tbody>
             {% for log in logs %}
             <tr>
@@ -31,7 +31,7 @@
                 <td><span class="status status-{{ log.level }}">{{ log.get_level_display }}</span></td>
             </tr>
             {% empty %}
-            <tr><td colspan="5" class="empty-note">Nenhum log encontrado.</td></tr>
+            <tr><td colspan="5" class="empty-note">Nenhum registro encontrado.</td></tr>
             {% endfor %}
         </tbody>
     </table>

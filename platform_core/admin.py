@@ -7,18 +7,18 @@ from .models import AccessRequest, Appointment, AuditLog, CycleRecord, Exam, FAQ
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     model = User
-    list_display = ("email", "full_name", "role", "approval_status", "is_active")
+    list_display = ("email", "full_name", "role", "institution_name", "specialty", "approval_status", "is_active")
     list_filter = ("role", "approval_status", "is_active")
     ordering = ("email",)
-    search_fields = ("email", "full_name", "cpf", "cnpj")
+    search_fields = ("email", "full_name", "cpf", "cnpj", "crm", "specialty", "institution_name")
     fieldsets = (
         (None, {"fields": ("email", "username", "password")}),
         ("Perfil", {"fields": ("full_name", "role", "approval_status", "consent_version", "consent_accepted_at")}),
         ("Contato", {"fields": ("phone_primary", "phone_secondary", "secondary_email")}),
-        ("Usuaria", {"fields": ("cpf", "birth_date", "cep", "street", "number", "neighborhood", "city", "state", "complement")}),
-        ("Clinica", {"fields": ("cnpj", "company_name", "trade_name", "technical_manager", "crm")}),
-        ("Permissoes", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
-        ("Seguranca", {"fields": ("invalid_login_attempts", "blocked_until", "last_login")}),
+        ("Paciente", {"fields": ("cpf", "birth_date", "cep", "street", "number", "neighborhood", "city", "state", "complement")}),
+        ("Profissional / instituição", {"fields": ("cnpj", "company_name", "trade_name", "technical_manager", "crm", "specialty", "institution_name")}),
+        ("Permissões", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        ("Segurança", {"fields": ("invalid_login_attempts", "blocked_until", "last_login")}),
     )
     add_fieldsets = (
         (

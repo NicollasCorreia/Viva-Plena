@@ -11,7 +11,7 @@ def role_required(*roles):
         @wraps(view_func)
         def wrapper(request, *args, **kwargs):
             if request.user.role not in roles:
-                messages.error(request, "Voce nao tem permissao para acessar esta area.")
+                messages.error(request, "Você não tem permissão para acessar esta área.")
                 return redirect("dashboard_redirect")
             return view_func(request, *args, **kwargs)
 

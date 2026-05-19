@@ -1,14 +1,14 @@
 {% extends 'clinic/base.html' %}
-{% block clinic_title %}Relatorios da clinica{% endblock %}
+{% block clinic_title %}Relatórios{% endblock %}
 {% block clinic_content %}
-<section class="stats-row">
-    <article class="metric-card card border-0 shadow-sm"><strong>{{ approved_count }}</strong><span>Pacientes autorizadas</span></article>
-    <article class="metric-card card border-0 shadow-sm"><strong>{{ exams_count }}</strong><span>Exames acessiveis</span></article>
-    <article class="metric-card card border-0 shadow-sm"><strong>{{ appointments_count }}</strong><span>Consultas</span></article>
+<section class="stats-row mb-4">
+    <article class="metric-card"><strong>{{ approved_count }}</strong><span>Pacientes com acesso liberado</span></article>
+    <article class="metric-card"><strong>{{ exams_count }}</strong><span>Exames disponíveis</span></article>
+    <article class="metric-card"><strong>{{ appointments_count }}</strong><span>Consultas</span></article>
 </section>
-<article class="info-card card border-0 shadow-sm">
-    <h3>Exportacao</h3>
-    <p>Baixe um CSV simples para demonstracao do modulo gerencial da clinica.</p>
+<article class="info-card mt-4">
+    <h3>Baixar resumo</h3>
+    <p>Se quiser, baixe um arquivo CSV com os principais números desta área para compartilhar ou acompanhar depois.</p>
     <a class="btn btn-primary" href="?export=csv">Baixar CSV</a>
 </article>
 {% endblock %}

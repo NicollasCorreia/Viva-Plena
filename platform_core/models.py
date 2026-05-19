@@ -38,16 +38,16 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("role", User.Role.ADMIN)
         extra_fields.setdefault("approval_status", User.ApprovalStatus.APPROVED)
         if extra_fields.get("is_staff") is not True:
-            raise ValueError("Superuser precisa de is_staff=True.")
+            raise ValueError("Para criar um superusuário, is_staff precisa estar como True.")
         if extra_fields.get("is_superuser") is not True:
-            raise ValueError("Superuser precisa de is_superuser=True.")
+            raise ValueError("Para criar um superusuário, is_superuser precisa estar como True.")
         return self._create_user(email, password, **extra_fields)
 
 
 class User(AbstractUser):
     class Role(models.TextChoices):
-        PATIENT = "patient", "Usuária"
-        CLINIC = "clinic", "Clínica"
+        PATIENT = "patient", "Paciente"
+        CLINIC = "clinic", "Profissional CESMAC"
         ADMIN = "admin", "Administrador"
 
     class ApprovalStatus(models.TextChoices):
@@ -77,6 +77,8 @@ class User(AbstractUser):
     trade_name = models.CharField(max_length=255, blank=True)
     technical_manager = models.CharField(max_length=255, blank=True)
     crm = models.CharField(max_length=30, blank=True)
+    specialty = models.CharField(max_length=120, blank=True)
+    institution_name = models.CharField(max_length=120, default="CESMAC")
 
     consent_version = models.CharField(max_length=20, default="1.0")
     consent_accepted_at = models.DateTimeField(blank=True, null=True)
@@ -112,6 +114,10 @@ class User(AbstractUser):
         return self.role == self.Role.CLINIC
 
     @property
+    def is_professional(self):
+        return self.role == self.Role.CLINIC
+
+    @property
     def is_admin_portal(self):
         return self.role == self.Role.ADMIN
 
@@ -132,8 +138,8 @@ class User(AbstractUser):
 
 class AuditLog(models.Model):
     class Level(models.TextChoices):
-        INFO = "info", "Informação"
-        WARNING = "warning", "Alerta"
+        INFO = "info", "Informativo"
+        WARNING = "warning", "Atenção"
         CRITICAL = "critical", "Crítico"
 
     actor = models.ForeignKey(
@@ -179,12 +185,12 @@ class FAQ(models.Model):
 
 class Notification(models.Model):
     class Type(models.TextChoices):
-        ACCESS = "access", "Solicitação de acesso"
-        SECURITY = "security", "Segurança"
-        CYCLE = "cycle", "Ciclo"
+        ACCESS = "access", "Pedido de acesso"
+        SECURITY = "security", "Segurança da conta"
+        CYCLE = "cycle", "Ciclo menstrual"
         APPOINTMENT = "appointment", "Consulta"
         EXAM = "exam", "Exame"
-        ADMIN = "admin", "Administrativa"
+        ADMIN = "admin", "Aviso importante"
 
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
     type = models.CharField(max_length=20, choices=Type.choices)
@@ -204,7 +210,7 @@ class Notification(models.Model):
 class Exam(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", "Ativo"
-        DELETED = "deleted", "Excluído"
+        DELETED = "deleted", "Removido"
 
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="exams")
     title = models.CharField(max_length=120)
@@ -287,7 +293,11 @@ class AccessRequest(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.clinic} -> {self.patient} ({self.get_status_display()})"
+        return f"{self.professional} -> {self.patient} ({self.get_status_display()})"
+
+    @property
+    def professional(self):
+        return self.clinic
 
 
 class Appointment(models.Model):
@@ -301,6 +311,7 @@ class Appointment(models.Model):
     specialist = models.CharField(max_length=120)
     scheduled_for = models.DateTimeField()
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.SCHEDULED)
+    hidden_by_patient_at = models.DateTimeField(blank=True, null=True)
     three_day_reminder_sent_at = models.DateTimeField(blank=True, null=True)
     same_day_reminder_sent_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -310,6 +321,10 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"{self.patient.full_name} - {self.scheduled_for:%d/%m/%Y %H:%M}"
+
+    @property
+    def professional(self):
+        return self.clinic
 
 
 class SecureMessage(models.Model):

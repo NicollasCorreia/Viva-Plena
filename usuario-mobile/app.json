@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "usuario-mobile",
-    "slug": "usuario-mobile",
+    "name": "Viva Plena",
+    "slug": "viva-plena-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "usuariomobile",
+    "scheme": "vivaplena",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
@@ -17,6 +17,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "usesCleartextTraffic": true,
       "edgeToEdgeEnabled": true
     }
   }

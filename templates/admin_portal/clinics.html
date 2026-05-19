@@ -1,12 +1,12 @@
 {% extends 'admin_portal/base.html' %}
-{% block admin_title %}Aprovação de clínicas{% endblock %}
-{% block admin_subtitle %}Valide o cadastro institucional, acompanhe o status atual de cada clínica e aplique ações de governança quando necessário.{% endblock %}
+{% block admin_title %}Profissionais cadastradas{% endblock %}
+{% block admin_subtitle %}Analise cada cadastro e escolha a ação adequada para liberar, recusar ou suspender o acesso.{% endblock %}
 {% block admin_content %}
-<article class="table-card admin-panel card border-0 shadow-sm">
+<article class="table-card admin-panel">
     <div class="section-head">
         <div>
-            <h3>Clínicas cadastradas</h3>
-            <p class="section-copy">Fluxo de aprovação inspirado no layout de operação do Figma, com destaque para status e ações principais.</p>
+            <h3>Lista de profissionais</h3>
+            <p class="section-copy">Acompanhe o status de cada cadastro e tome a ação necessária com mais clareza.</p>
         </div>
     </div>
     <div class="table-responsive">
@@ -27,7 +27,7 @@
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="4" class="empty-note">Nenhuma clínica cadastrada.</td></tr>
+            <tr><td colspan="4" class="empty-note">Nenhuma profissional cadastrada.</td></tr>
             {% endfor %}
         </tbody>
     </table>

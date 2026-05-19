@@ -1,20 +1,20 @@
 {% extends 'clinic/base.html' %}
-{% block clinic_title %}Painel web de apoio da clinica{% endblock %}
+{% block clinic_title %}Painel profissional{% endblock %}
 {% block clinic_content %}
 {% if pending_approval %}
-<article class="info-card">
-    <h3>Cadastro em analise</h3>
-    <p>Sua clinica ainda nao foi aprovada. Assim que a administracao liberar o acesso, este painel ficara completo.</p>
+<article class="info-card mt-4">
+    <h3>Cadastro em análise</h3>
+    <p>Recebemos seu cadastro profissional. Assim que a equipe administrativa concluir a análise, esta área web será liberada por completo.</p>
 </article>
 {% else %}
-<section class="stats-row">
-    <article class="metric-card card border-0 shadow-sm"><strong>{{ approved_count }}</strong><span>Pacientes autorizadas</span></article>
-    <article class="metric-card card border-0 shadow-sm"><strong>{{ pending_count }}</strong><span>Solicitacoes pendentes</span></article>
-    <article class="metric-card card border-0 shadow-sm"><strong>{{ exam_count }}</strong><span>Exames acessiveis</span></article>
+<section class="stats-row mb-4">
+    <article class="metric-card"><strong>{{ approved_count }}</strong><span>Pacientes com acesso liberado</span></article>
+    <article class="metric-card"><strong>{{ pending_count }}</strong><span>Pedidos aguardando resposta</span></article>
+    <article class="metric-card"><strong>{{ exam_count }}</strong><span>Exames disponíveis</span></article>
 </section>
-<section class="dashboard-grid">
-    <article class="table-card card border-0 shadow-sm">
-        <div class="section-head"><h3>Solicitacoes recentes</h3><a href="{% url 'clinic_requests' %}">Gerenciar</a></div>
+<section class="dashboard-grid mb-4">
+    <article class="table-card">
+        <div class="section-head"><div><h3>Pedidos recentes</h3><p class="section-copy">Veja as solicitações enviadas e acompanhe o retorno das pacientes.</p></div><a href="{% url 'professional_requests' %}">Gerenciar</a></div>
         <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
             <thead><tr><th>Paciente</th><th>Status</th><th>Data</th></tr></thead>
@@ -22,22 +22,22 @@
                 {% for item in requests_list %}
                 <tr><td>{{ item.patient.full_name }}</td><td>{{ item.get_status_display }}</td><td>{{ item.requested_at|date:"d/m/Y H:i" }}</td></tr>
                 {% empty %}
-                <tr><td colspan="3">Nenhuma solicitacao registrada.</td></tr>
+                <tr><td colspan="3">Você ainda não enviou pedidos de acesso.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
         </div>
     </article>
-    <article class="table-card card border-0 shadow-sm">
-        <div class="section-head"><h3>Consultas proximas</h3><a href="{% url 'clinic_reports' %}">Relatorios</a></div>
+    <article class="table-card">
+        <div class="section-head"><div><h3>Consultas próximas</h3><p class="section-copy">Uma visão rápida do que já está marcado para os próximos atendimentos.</p></div><a class="btn btn-secondary btn-sm" href="{% url 'professional_appointments' %}">Agendar e cancelar</a></div>
         <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
-            <thead><tr><th>Paciente</th><th>Especialista</th><th>Quando</th></tr></thead>
+            <thead><tr><th>Paciente</th><th>Profissional</th><th>Quando</th></tr></thead>
             <tbody>
                 {% for item in appointments %}
                 <tr><td>{{ item.patient.full_name }}</td><td>{{ item.specialist }}</td><td>{{ item.scheduled_for|date:"d/m/Y H:i" }}</td></tr>
                 {% empty %}
-                <tr><td colspan="3">Nenhuma consulta agendada.</td></tr>
+                <tr><td colspan="3">Não há consultas registradas no momento.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

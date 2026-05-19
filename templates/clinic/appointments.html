@@ -1,0 +1,76 @@
+{% extends 'clinic/base.html' %}
+{% block clinic_title %}Agendamento de Consultas{% endblock %}
+{% block clinic_content %}
+<div class="row g-4">
+    <div class="col-lg-4">
+        <article class="form-card">
+            <div class="section-head">
+                <div>
+                    <h3>Nova Consulta</h3>
+                    <p class="section-copy">Agende um atendimento para uma paciente que já autorizou seu acesso.</p>
+                </div>
+            </div>
+            <form method="post" class="form-grid">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<small class="field-error">{{ field.errors|join:', ' }}</small>{% endif %}
+                </div>
+                {% endfor %}
+                <button class="btn btn-primary w-100 mt-2" type="submit">Agendar consulta</button>
+            </form>
+        </article>
+    </div>
+    <div class="col-lg-8">
+        <article class="table-card">
+            <div class="section-head">
+                <div>
+                    <h3>Todas as Consultas</h3>
+                    <p class="section-copy">Histórico e próximos atendimentos agendados.</p>
+                </div>
+            </div>
+            <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Paciente</th>
+                        <th>Especialidade/Tipo</th>
+                        <th>Quando</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in appointments %}
+                    <tr>
+                        <td>{{ item.patient.full_name }}</td>
+                        <td>{{ item.specialist }}</td>
+                        <td>{{ item.scheduled_for|date:"d/m/Y H:i" }}</td>
+                        <td><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span></td>
+                        <td>
+                            {% if item.status == "scheduled" %}
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="cancel_appointment">
+                                <input type="hidden" name="appointment_id" value="{{ item.id }}">
+                                <button class="btn btn-danger btn-sm" type="submit">Cancelar</button>
+                            </form>
+                            {% else %}
+                            <span class="muted">Sem ação</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">Você ainda não possui consultas agendadas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </article>
+    </div>
+</div>
+{% endblock %}

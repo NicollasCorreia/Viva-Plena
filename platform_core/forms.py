@@ -3,7 +3,7 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import AccessRequest, Appointment, CycleRecord, Exam, FAQ, MedicalHistory, SecureMessage, User
+from .models import AccessRequest, Appointment, FAQ, SecureMessage, User
 
 
 class BootstrapFormMixin:
@@ -11,83 +11,92 @@ class BootstrapFormMixin:
         for field in self.fields.values():
             widget = field.widget
             css_class = "form-control"
-            if isinstance(widget, (forms.Select,)):
+            if isinstance(widget, forms.Select):
                 css_class = "form-select"
-            elif isinstance(widget, (forms.CheckboxInput,)):
+            elif isinstance(widget, forms.CheckboxInput):
                 css_class = "form-check-input"
-            elif isinstance(widget, (forms.ClearableFileInput,)):
+            elif isinstance(widget, forms.ClearableFileInput):
                 css_class = "form-control"
 
             existing = widget.attrs.get("class", "")
             widget.attrs["class"] = f"{existing} {css_class}".strip()
 
+    def configure_field(self, field_name, *, label=None, placeholder=None, help_text=None, widget_attrs=None):
+        field = self.fields[field_name]
+        if label is not None:
+            field.label = label
+        if help_text is not None:
+            field.help_text = help_text
+        if placeholder is not None:
+            field.widget.attrs["placeholder"] = placeholder
+        if widget_attrs:
+            field.widget.attrs.update(widget_attrs)
+
 
 class EmailAuthenticationForm(BootstrapFormMixin, AuthenticationForm):
-    username = forms.EmailField(label="E-mail", widget=forms.EmailInput(attrs={"placeholder": "voce@email.com"}))
-    password = forms.CharField(label="Senha", strip=False, widget=forms.PasswordInput(attrs={"placeholder": "Sua senha"}))
+    username = forms.EmailField(label="E-mail", widget=forms.EmailInput(attrs={"placeholder": "nome@exemplo.com"}))
+    password = forms.CharField(label="Senha", strip=False, widget=forms.PasswordInput(attrs={"placeholder": "Digite sua senha"}))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.apply_bootstrap()
-
-
-class PatientRegistrationForm(BootstrapFormMixin, UserCreationForm):
-    class Meta(UserCreationForm.Meta):
-        model = User
-        fields = [
-            "full_name",
-            "email",
-            "cpf",
-            "birth_date",
-            "phone_primary",
-            "cep",
-            "street",
-            "number",
-            "neighborhood",
-            "city",
-            "state",
-            "complement",
-        ]
-        widgets = {"birth_date": forms.DateInput(attrs={"type": "date"})}
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.apply_bootstrap()
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.role = User.Role.PATIENT
-        user.approval_status = User.ApprovalStatus.APPROVED
-        user.consent_accepted_at = timezone.now()
-        user.username = self.cleaned_data["email"]
-        if commit:
-            user.save()
-        return user
+        self.configure_field("username", label="E-mail", placeholder="nome@exemplo.com")
+        self.configure_field("password", label="Senha", placeholder="Digite sua senha")
 
 
 class ClinicRegistrationForm(BootstrapFormMixin, UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
         fields = [
-            "trade_name",
-            "company_name",
+            "full_name",
             "email",
-            "cnpj",
             "phone_primary",
-            "technical_manager",
             "crm",
+            "specialty",
             "city",
             "state",
         ]
+        labels = {
+            "full_name": "Nome completo",
+            "email": "E-mail",
+            "phone_primary": "Telefone",
+            "crm": "CRM",
+            "specialty": "Especialidade",
+            "city": "Cidade",
+            "state": "UF",
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.apply_bootstrap()
+        self.configure_field("full_name", placeholder="Nome da profissional")
+        self.configure_field("email", placeholder="nome@cesmac.edu.br")
+        self.configure_field("phone_primary", placeholder="(11) 99999-0000")
+        self.configure_field("crm", placeholder="Ex.: CRM-AL 12345")
+        self.configure_field("specialty", placeholder="Ex.: Ginecologia e obstetrícia")
+        self.configure_field("city", placeholder="Cidade")
+        self.configure_field("state", placeholder="UF", widget_attrs={"maxlength": 2})
+        self.configure_field(
+            "password1",
+            label="Crie uma senha",
+            placeholder="Use pelo menos 8 caracteres",
+            help_text="Escolha uma senha com pelo menos 8 caracteres para proteger seu acesso web profissional.",
+        )
+        self.configure_field(
+            "password2",
+            label="Confirme sua senha",
+            placeholder="Repita a senha",
+            help_text="Digite a mesma senha novamente para confirmar.",
+        )
 
     def save(self, commit=True):
         user = super().save(commit=False)
         user.role = User.Role.CLINIC
-        user.full_name = self.cleaned_data["trade_name"]
+        user.full_name = self.cleaned_data["full_name"]
+        user.trade_name = self.cleaned_data["full_name"]
+        user.company_name = "CESMAC"
+        user.technical_manager = self.cleaned_data["full_name"]
+        user.institution_name = "CESMAC"
         user.approval_status = User.ApprovalStatus.PENDING
         user.is_active = True
         user.username = self.cleaned_data["email"]
@@ -96,87 +105,85 @@ class ClinicRegistrationForm(BootstrapFormMixin, UserCreationForm):
         return user
 
 
-class ExamForm(BootstrapFormMixin, forms.ModelForm):
-    class Meta:
-        model = Exam
-        fields = ["title", "exam_type", "performed_at", "file", "notes"]
-        widgets = {"performed_at": forms.DateInput(attrs={"type": "date"})}
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.apply_bootstrap()
-
-    def clean_file(self):
-        file = self.cleaned_data["file"]
-        allowed_extensions = {".jpg", ".jpeg", ".png", ".pdf"}
-        extension = file.name[file.name.rfind(".") :].lower()
-        if extension not in allowed_extensions:
-            raise ValidationError("Envie apenas arquivos JPG, PNG ou PDF.")
-        if file.size > 10 * 1024 * 1024:
-            raise ValidationError("O arquivo não pode ultrapassar 10 MB.")
-        return file
-
-
-class CycleRecordForm(BootstrapFormMixin, forms.ModelForm):
-    class Meta:
-        model = CycleRecord
-        fields = ["start_date", "end_date", "symptoms", "notes"]
-        widgets = {
-            "start_date": forms.DateInput(attrs={"type": "date"}),
-            "end_date": forms.DateInput(attrs={"type": "date"}),
+class AdminCreationForm(BootstrapFormMixin, UserCreationForm):
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ["full_name", "email"]
+        labels = {
+            "full_name": "Nome completo",
+            "email": "E-mail",
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.apply_bootstrap()
+        self.configure_field("full_name", placeholder="Nome da administradora")
+        self.configure_field("email", placeholder="admin@vivaplena.local")
+        self.configure_field(
+            "password1",
+            label="Crie uma senha",
+            placeholder="Use pelo menos 8 caracteres",
+            help_text="Defina uma senha forte para o novo acesso administrativo.",
+        )
+        self.configure_field(
+            "password2",
+            label="Confirme sua senha",
+            placeholder="Repita a senha",
+            help_text="Repita a senha para confirmar a criação da conta.",
+        )
 
-    def clean(self):
-        cleaned_data = super().clean()
-        start_date = cleaned_data.get("start_date")
-        end_date = cleaned_data.get("end_date")
-        if start_date and end_date and end_date < start_date:
-            raise ValidationError("A data final não pode ser anterior à data inicial.")
-        return cleaned_data
-
-
-class MedicalHistoryForm(BootstrapFormMixin, forms.ModelForm):
-    class Meta:
-        model = MedicalHistory
-        fields = ["info_type", "description", "record_date", "observation"]
-        widgets = {"record_date": forms.DateInput(attrs={"type": "date"})}
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.apply_bootstrap()
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.role = User.Role.ADMIN
+        user.full_name = self.cleaned_data["full_name"]
+        user.approval_status = User.ApprovalStatus.APPROVED
+        user.is_active = True
+        user.is_staff = True
+        user.is_superuser = False
+        user.username = self.cleaned_data["email"]
+        if commit:
+            user.save()
+        return user
 
 
 class AccessRequestForm(BootstrapFormMixin, forms.Form):
     patient_cpf = forms.CharField(label="CPF da paciente", max_length=14)
-    request_note = forms.CharField(label="Observação", required=False)
+    request_note = forms.CharField(label="Mensagem para a paciente", required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.apply_bootstrap()
+        self.configure_field("patient_cpf", placeholder="000.000.000-00")
+        self.configure_field("request_note", placeholder="Explique, se quiser, por que você precisa desse acesso.")
 
 
-class AppointmentForm(BootstrapFormMixin, forms.ModelForm):
+class ClinicAppointmentForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Appointment
-        fields = ["clinic", "specialist", "scheduled_for"]
+        fields = ["patient", "specialist", "scheduled_for"]
+        labels = {
+            "patient": "Paciente",
+            "specialist": "Especialidade ou tipo de atendimento",
+            "scheduled_for": "Data e horário",
+        }
         widgets = {"scheduled_for": forms.DateTimeInput(attrs={"type": "datetime-local"})}
 
     def __init__(self, *args, **kwargs):
+        clinic = kwargs.pop("clinic", None)
         super().__init__(*args, **kwargs)
-        self.fields["clinic"].queryset = User.objects.filter(
-            role=User.Role.CLINIC,
-            approval_status=User.ApprovalStatus.APPROVED,
-        )
+        if clinic:
+            approved_patient_ids = clinic.clinic_requests.filter(
+                status=AccessRequest.Status.APPROVED
+            ).values_list("patient_id", flat=True)
+            self.fields["patient"].queryset = User.objects.filter(id__in=approved_patient_ids)
+        
         self.apply_bootstrap()
+        self.configure_field("specialist", placeholder="Ex.: Retorno, Exame Clínico, Coleta")
 
     def clean_scheduled_for(self):
         scheduled_for = self.cleaned_data["scheduled_for"]
         if scheduled_for <= timezone.now():
-            raise ValidationError("Escolha uma data futura para o agendamento.")
+            raise ValidationError("Escolha uma data e um horário futuros para a consulta.")
         return scheduled_for
 
 
@@ -184,21 +191,29 @@ class SecureMessageForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = SecureMessage
         fields = ["recipient", "body"]
-        widgets = {"body": forms.Textarea(attrs={"rows": 3, "placeholder": "Escreva sua mensagem..."})}
+        labels = {"recipient": "Destinatária", "body": "Mensagem"}
+        widgets = {"body": forms.Textarea(attrs={"rows": 3, "placeholder": "Escreva sua mensagem de forma clara e objetiva."})}
 
     def __init__(self, *args, **kwargs):
         allowed_recipients = kwargs.pop("allowed_recipients", User.objects.none())
         super().__init__(*args, **kwargs)
         self.fields["recipient"].queryset = allowed_recipients
         self.apply_bootstrap()
+        self.configure_field("recipient", label="Para quem você quer enviar")
 
 
 class FAQForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = FAQ
         fields = ["question", "answer", "is_active"]
-        widgets = {"answer": forms.Textarea(attrs={"rows": 4})}
+        labels = {
+            "question": "Pergunta",
+            "answer": "Resposta",
+            "is_active": "Mostrar esta pergunta na área de ajuda",
+        }
+        widgets = {"answer": forms.Textarea(attrs={"rows": 4, "placeholder": "Escreva a resposta de um jeito simples e útil para quem vai ler."})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.apply_bootstrap()
+        self.configure_field("question", placeholder="Ex.: Como libero meus exames para uma profissional?")

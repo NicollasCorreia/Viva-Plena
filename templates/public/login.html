@@ -1,38 +1,38 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Entrar | Ciclo & Saúde{% endblock %}
+{% block title %}Entrar | Viva Plena{% endblock %}
 {% block body_class %}auth-body{% endblock %}
 {% block content %}
 <main class="auth-layout">
     <section class="auth-illustration rounded-4 shadow-lg">
         <div class="auth-brand">
-            <img src="{% static 'icons/app-icon.svg' %}" alt="Ciclo &amp; Saúde" class="auth-logo">
+            <img src="{% static 'icons/app-icon.svg' %}" alt="Viva Plena" class="auth-logo">
             <div>
-                <span class="eyebrow">Ciclo &amp; Saúde</span>
-                <h1>Gerenciador web com foco em operação e governança.</h1>
+                <span class="eyebrow">Viva Plena</span>
+                <h1>Painel web para acompanhar e cuidar da operação.</h1>
             </div>
         </div>
-        <p>Os aplicativos da usuária e da clínica consomem a API REST central. Este acesso web foi desenhado para decisão administrativa, auditoria e acompanhamento institucional.</p>
+        <p>Pacientes utilizam exclusivamente o aplicativo móvel, enquanto a plataforma web se concentra no uso profissional e no gerenciamento administrativo.</p>
         <div class="auth-preview-list">
             <article class="auth-preview-card">
-                <strong>Dashboard</strong>
-                <span>Indicadores, pendências e logs recentes.</span>
+                <strong>Visão geral</strong>
+                <span>Indicadores, pendências e últimos acontecimentos.</span>
             </article>
             <article class="auth-preview-card">
-                <strong>Clínicas</strong>
+                <strong>Profissionais</strong>
                 <span>Aprovação, recusa e suspensão de cadastros.</span>
             </article>
             <article class="auth-preview-card">
-                <strong>FAQ e relatórios</strong>
-                <span>Suporte institucional e exportação gerencial.</span>
+                <strong>Ajuda e relatórios</strong>
+                <span>Respostas de apoio e dados para acompanhamento.</span>
             </article>
         </div>
     </section>
     <section class="auth-card rounded-4 shadow-lg">
         <div class="auth-card-head">
-            <span class="eyebrow">Acesso administrativo</span>
-            <h2 class="h3 mb-2">Entrar no gerenciador web</h2>
-            <p class="muted mb-4">Use sua conta administrativa para acompanhar o ecossistema completo.</p>
+            <span class="eyebrow">Acesso ao painel</span>
+            <h2 class="h3 mb-2">Entrar na sua conta</h2>
+            <p class="muted mb-4">Use seu e-mail e sua senha para continuar com segurança.</p>
         </div>
         <form method="post" class="form-grid">
             {% csrf_token %}
@@ -45,9 +45,9 @@
             {% endfor %}
             <button class="btn btn-primary w-100" type="submit">Entrar</button>
         </form>
+        <p class="form-helper mt-4 mb-0">Se você é paciente, o uso do sistema é exclusivo pelo aplicativo móvel. Baixe o app para acessar sua conta.</p>
         <div class="auth-links mt-4">
-            <a href="{% url 'register_patient' %}">Cadastro de apoio da usuária</a>
-            <a href="{% url 'register_clinic' %}">Cadastro de apoio da clínica</a>
+            <a href="{% url 'register_professional' %}">Solicitar acesso profissional</a>
         </div>
     </section>
 </main>

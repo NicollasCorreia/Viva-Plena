@@ -5,14 +5,14 @@ from platform_core.models import AccessRequest, Appointment, AuditLog, CycleReco
 
 
 class Command(BaseCommand):
-    help = "Cria dados de demonstracao para o projeto Ciclo & Saude."
+    help = "Cria dados de demonstração para o projeto Viva Plena."
 
     def handle(self, *args, **options):
         admin_user, _ = User.objects.get_or_create(
-            email="admin@ciclosaude.local",
+            email="admin@vivaplena.local",
             defaults={
                 "username": "admin",
-                "full_name": "Administradora Ciclo & Saude",
+                "full_name": "Administradora Viva Plena",
                 "role": User.Role.ADMIN,
                 "approval_status": User.ApprovalStatus.APPROVED,
                 "is_staff": True,
@@ -30,7 +30,7 @@ class Command(BaseCommand):
                 "role": User.Role.PATIENT,
                 "cpf": "123.456.789-00",
                 "phone_primary": "(82) 99999-0000",
-                "city": "Maceio",
+                "city": "Maceió",
                 "state": "AL",
                 "approval_status": User.ApprovalStatus.APPROVED,
                 "consent_accepted_at": timezone.now(),
@@ -40,18 +40,18 @@ class Command(BaseCommand):
         patient.save()
 
         clinic, _ = User.objects.get_or_create(
-            email="clinica@demo.com",
+            email="helena@demo.com",
             defaults={
-                "username": "clinicademo",
-                "full_name": "Clinica Ginecologica Parceira",
-                "trade_name": "Clinica Ginecologica Parceira",
-                "company_name": "Clinica Parceira LTDA",
+                "username": "helenacosta",
+                "full_name": "Dra. Helena Costa",
+                "trade_name": "Dra. Helena Costa",
+                "company_name": "CESMAC",
                 "role": User.Role.CLINIC,
-                "cnpj": "12.345.678/0001-90",
                 "phone_primary": "(82) 3333-0000",
-                "technical_manager": "Dra. Helena Costa",
                 "crm": "CRM-AL 1000",
-                "city": "Maceio",
+                "specialty": "Ginecologia",
+                "institution_name": "CESMAC",
+                "city": "Maceió",
                 "state": "AL",
                 "approval_status": User.ApprovalStatus.APPROVED,
             },
@@ -60,18 +60,18 @@ class Command(BaseCommand):
         clinic.save()
 
         FAQ.objects.get_or_create(
-            question="Como compartilho meus exames com a clinica?",
-            defaults={"answer": "Acesse a area de solicitacoes e aprove o pedido da clinica desejada.", "is_active": True},
+            question="Como libero meus exames para uma profissional?",
+            defaults={"answer": "Abra a área de privacidade e autorize o pedido da profissional do CESMAC que você deseja liberar.", "is_active": True},
         )
         FAQ.objects.get_or_create(
-            question="Posso revogar o acesso depois?",
-            defaults={"answer": "Sim. O acesso pode ser revogado imediatamente pela usuaria.", "is_active": True},
+            question="Posso encerrar esse acesso depois?",
+            defaults={"answer": "Sim. Você pode encerrar o acesso a qualquer momento, com efeito imediato.", "is_active": True},
         )
 
         CycleRecord.objects.get_or_create(
             owner=patient,
             start_date=timezone.localdate() - timezone.timedelta(days=55),
-            defaults={"end_date": timezone.localdate() - timezone.timedelta(days=50), "symptoms": "Colica leve"},
+            defaults={"end_date": timezone.localdate() - timezone.timedelta(days=50), "symptoms": "Cólica leve"},
         )
         CycleRecord.objects.get_or_create(
             owner=patient,
@@ -103,8 +103,8 @@ class Command(BaseCommand):
         AuditLog.objects.get_or_create(
             actor=admin_user,
             target_user=clinic,
-            action="Aprovacao de clinica",
-            defaults={"details": "Clinica liberada para testes.", "level": AuditLog.Level.INFO},
+            action="Aprovação profissional",
+            defaults={"details": "Profissional liberada para testes.", "level": AuditLog.Level.INFO},
         )
 
-        self.stdout.write(self.style.SUCCESS("Dados demo criados com sucesso."))
+        self.stdout.write(self.style.SUCCESS("Dados de demonstração criados com sucesso."))

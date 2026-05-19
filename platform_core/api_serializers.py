@@ -25,6 +25,9 @@ class UserSummarySerializer(serializers.ModelSerializer):
             "cnpj",
             "trade_name",
             "company_name",
+            "crm",
+            "specialty",
+            "institution_name",
         ]
 
 
@@ -75,7 +78,7 @@ class ExamSerializer(serializers.ModelSerializer):
         if extension not in {".jpg", ".jpeg", ".png", ".pdf"}:
             raise serializers.ValidationError("Envie apenas arquivos JPG, PNG ou PDF.")
         if file.size > 10 * 1024 * 1024:
-            raise serializers.ValidationError("O arquivo nao pode ultrapassar 10 MB.")
+            raise serializers.ValidationError("O arquivo não pode passar de 10 MB.")
         return file
 
 
@@ -87,7 +90,7 @@ class CycleRecordSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if attrs["end_date"] < attrs["start_date"]:
-            raise serializers.ValidationError("A data final nao pode ser anterior a data inicial.")
+            raise serializers.ValidationError("A data de término não pode ser antes da data de início.")
         return attrs
 
 
@@ -102,6 +105,7 @@ class MedicalHistorySerializer(serializers.ModelSerializer):
 
 class AccessRequestSerializer(serializers.ModelSerializer):
     clinic = UserSummarySerializer(read_only=True)
+    professional = UserSummarySerializer(read_only=True)
     patient = UserSummarySerializer(read_only=True)
     patient_cpf = serializers.CharField(write_only=True, required=False)
     status_label = serializers.CharField(source="get_status_display", read_only=True)
@@ -111,6 +115,7 @@ class AccessRequestSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "clinic",
+            "professional",
             "patient",
             "patient_cpf",
             "status",
@@ -125,7 +130,7 @@ class AccessRequestSerializer(serializers.ModelSerializer):
     def validate_patient_cpf(self, value):
         patient = User.objects.filter(cpf=value, role=User.Role.PATIENT).first()
         if not patient:
-            raise serializers.ValidationError("Paciente nao encontrada com esse CPF.")
+            raise serializers.ValidationError("Não encontramos uma paciente com esse CPF.")
         return value
 
     def create(self, validated_data):
@@ -139,29 +144,62 @@ class AccessRequestSerializer(serializers.ModelSerializer):
             status=AccessRequest.Status.PENDING,
         ).first()
         if existing:
-            raise serializers.ValidationError({"detail": "Ja existe uma solicitacao pendente para essa paciente."})
+            raise serializers.ValidationError({"detail": "Já existe um pedido de acesso em andamento para essa paciente."})
 
         return AccessRequest.objects.create(clinic=clinic, patient=patient, **validated_data)
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
     clinic = UserSummarySerializer(read_only=True)
-    clinic_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(role=User.Role.CLINIC, approval_status=User.ApprovalStatus.APPROVED),
+    professional = UserSummarySerializer(read_only=True)
+    professional_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(
+            role=User.Role.CLINIC,
+            approval_status=User.ApprovalStatus.APPROVED,
+            institution_name__iexact="CESMAC",
+        ),
         source="clinic",
         write_only=True,
+        required=False,
+    )
+    clinic_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(
+            role=User.Role.CLINIC,
+            approval_status=User.ApprovalStatus.APPROVED,
+            institution_name__iexact="CESMAC",
+        ),
+        source="clinic",
+        write_only=True,
+        required=False,
     )
     status_label = serializers.CharField(source="get_status_display", read_only=True)
 
     class Meta:
         model = Appointment
-        fields = ["id", "clinic", "clinic_id", "specialist", "scheduled_for", "status", "status_label", "created_at"]
+        fields = [
+            "id",
+            "clinic",
+            "clinic_id",
+            "professional",
+            "professional_id",
+            "specialist",
+            "scheduled_for",
+            "status",
+            "status_label",
+            "created_at",
+        ]
         read_only_fields = ["status", "created_at"]
 
     def validate_scheduled_for(self, value):
         if value <= timezone.now():
-            raise serializers.ValidationError("Escolha uma data futura para o agendamento.")
+            raise serializers.ValidationError("Escolha uma data e um horário futuros para a consulta.")
         return value
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        if not attrs.get("clinic"):
+            raise serializers.ValidationError({"professional_id": "Escolha a profissional do atendimento."})
+        return attrs
 
 
 class SecureMessageSerializer(serializers.ModelSerializer):
@@ -208,7 +246,7 @@ class TokenLoginSerializer(serializers.Serializer):
         request = self.context.get("request")
         user = authenticate(request=request, email=email, password=password)
         if not user:
-            raise serializers.ValidationError("Credenciais invalidas.", code="authorization")
+            raise serializers.ValidationError("Não encontramos uma conta com esse e-mail e senha.", code="authorization")
         attrs["user"] = user
         return attrs
 
@@ -248,31 +286,33 @@ class PatientRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-class ClinicRegistrationSerializer(serializers.ModelSerializer):
+class ProfessionalRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
         model = User
         fields = [
-            "trade_name",
-            "company_name",
+            "full_name",
             "email",
             "password",
-            "cnpj",
             "phone_primary",
-            "technical_manager",
             "crm",
+            "specialty",
             "city",
             "state",
         ]
 
     def create(self, validated_data):
         password = validated_data.pop("password")
-        trade_name = validated_data.get("trade_name")
+        full_name = validated_data.pop("full_name")
         user = User(
             username=validated_data["email"],
             role=User.Role.CLINIC,
-            full_name=trade_name,
+            full_name=full_name,
+            trade_name=full_name,
+            company_name="CESMAC",
+            technical_manager=full_name,
+            institution_name="CESMAC",
             approval_status=User.ApprovalStatus.PENDING,
             is_active=True,
             **validated_data,
@@ -280,3 +320,6 @@ class ClinicRegistrationSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+
+ClinicRegistrationSerializer = ProfessionalRegistrationSerializer

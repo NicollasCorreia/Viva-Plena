@@ -1,35 +1,20 @@
-{% extends 'patient/base.html' %}
-{% block patient_title %}Solicitacoes de acesso{% endblock %}
-{% block patient_content %}
-<article class="table-card card border-0 shadow-sm">
-    <h3>Clinicas vinculadas e pendentes</h3>
-    <div class="table-responsive">
-    <table class="table table-hover align-middle mb-0">
-        <thead><tr><th>Clinica</th><th>Status</th><th>Data</th><th>Acoes</th></tr></thead>
-        <tbody>
-            {% for item in requests_list %}
-            <tr>
-                <td>{{ item.clinic.full_name }}</td>
-                <td><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span></td>
-                <td>{{ item.requested_at|date:"d/m/Y H:i" }}</td>
-                <td>
-                    <div class="inline-actions">
-                        {% if item.status == 'pending' %}
-                        <form method="post">{% csrf_token %}<input type="hidden" name="access_id" value="{{ item.id }}"><input type="hidden" name="action" value="approve"><button class="btn btn-primary btn-sm">Aprovar</button></form>
-                        <form method="post">{% csrf_token %}<input type="hidden" name="access_id" value="{{ item.id }}"><input type="hidden" name="action" value="reject"><button class="btn btn-danger btn-sm">Recusar</button></form>
-                        {% elif item.status == 'approved' %}
-                        <form method="post">{% csrf_token %}<input type="hidden" name="access_id" value="{{ item.id }}"><input type="hidden" name="action" value="revoke"><button class="btn btn-danger btn-sm">Revogar</button></form>
-                        {% else %}
-                        <span class="muted">Sem acoes</span>
-                        {% endif %}
-                    </div>
-                </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="4">Nenhuma solicitacao recebida.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    </div>
-</article>
+{% extends 'base.html' %}
+
+{% block title %}Acesso da Paciente | Viva Plena{% endblock %}
+
+{% block content %}
+<main class="container py-5">
+    <section class="hero-card mx-auto" style="max-width: 760px;">
+        <span class="eyebrow">Área da paciente</span>
+        <h1 class="display-5 fw-bold mt-3">Seu acompanhamento principal acontece pelo aplicativo móvel.</h1>
+        <p class="lead mt-3 mb-4">
+            Esta página existe apenas como ponto de apoio para acessos antigos. Para registrar exames, ciclo, consultas
+            e mensagens, use o app Viva Plena conectado à API deste projeto.
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+            <a class="btn btn-primary btn-lg" href="{% url 'home' %}">Voltar para a página inicial</a>
+            <a class="btn btn-light btn-lg" href="{% url 'logout' %}">Encerrar sessão</a>
+        </div>
+    </section>
+</main>
 {% endblock %}
