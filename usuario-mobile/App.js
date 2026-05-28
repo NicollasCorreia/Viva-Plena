@@ -52,6 +52,40 @@ const NAV_ITEMS = [
   { key: "appointments", label: "Consultas", icon: "medkit" },
   { key: "notifications", label: "Avisos", icon: "notifications" },
   { key: "faq", label: "Ajuda", icon: "help-circle" },
+  { key: "about", label: "Perfil", icon: "person-circle" },
+];
+
+const ABOUT_RESEARCHERS = [
+  {
+    name: "Camila Calado de Vasconcelos",
+    role: "Autora da dissertação do mestrado",
+  },
+  {
+    name: "Valesca Barreto Luz",
+    role: "Parceira e coorientadora",
+  },
+  {
+    name: "José Geraldo Tenório de Brito Barboza",
+    role: "Parceiro",
+  },
+  {
+    name: "Carlos Alberto Correia Lessa Filho",
+    role: "Pesquisador e orientador",
+  },
+];
+
+const ABOUT_DEVELOPERS = [
+  {
+    name: "Nicollas Correia da Silva Sousa",
+    role: "Programador responsável",
+  },
+];
+
+const ABOUT_DESIGNERS = [
+  {
+    name: "Nicollas Correia da Silva Sousa",
+    role: "Responsável pelo design",
+  },
 ];
 
 const FIELD_LABELS = {
@@ -1285,6 +1319,63 @@ function FAQScreen({ apiUrl, token }) {
   );
 }
 
+function AboutScreen() {
+  return (
+    <ScreenScroll contentContainerStyle={styles.screenContent}>
+      <ScreenIntro
+        eyebrow="Perfil"
+        title="Sobre o aplicativo"
+        subtitle="Conheça a equipe, as parcerias acadêmicas e os créditos do aplicativo."
+      />
+
+      <SectionCard title="Sobre o aplicativo">
+        <Text style={styles.bodyText}>
+          O Viva Plena reúne funcionalidades para acompanhamento de exames, acessos e registros em um único lugar,
+          ajudando a paciente a consultar suas informações com mais clareza, autonomia e praticidade.
+        </Text>
+      </SectionCard>
+
+      <SectionCard title="Desenvolvido por">
+        <View style={styles.aboutInstitutionCard}>
+          <Image
+            source={require("./assets/images/cesmac-citec-logo.png")}
+            style={styles.aboutLogo}
+            resizeMode="contain"
+          />
+        </View>
+      </SectionCard>
+
+      <SectionCard title="Professores e pesquisadores envolvidos">
+        {ABOUT_RESEARCHERS.map((item, index) => (
+          <View key={item.name} style={[styles.aboutCreditItem, index === 0 && styles.aboutCreditItemFirst]}>
+            <Text style={styles.aboutCreditName}>{item.name}</Text>
+            <Text style={styles.aboutCreditRole}>{item.role}</Text>
+          </View>
+        ))}
+      </SectionCard>
+
+      <SectionCard title="Desenvolvedor responsável">
+        {ABOUT_DEVELOPERS.map((item, index) => (
+          <View key={item.name} style={[styles.aboutCreditItem, index === 0 && styles.aboutCreditItemFirst]}>
+            <Text style={styles.aboutCreditName}>{item.name}</Text>
+            <Text style={styles.aboutCreditRole}>{item.role}</Text>
+          </View>
+        ))}
+      </SectionCard>
+
+      <SectionCard title="Design">
+        {ABOUT_DESIGNERS.map((item, index) => (
+          <View key={item.name} style={[styles.aboutCreditItem, index === 0 && styles.aboutCreditItemFirst]}>
+            <Text style={styles.aboutCreditName}>{item.name}</Text>
+            <Text style={styles.aboutCreditRole}>{item.role}</Text>
+          </View>
+        ))}
+      </SectionCard>
+
+    </ScreenScroll>
+  );
+}
+
 export default function App() {
   const { width: screenWidth } = useWindowDimensions();
   const [booting, setBooting] = useState(true);
@@ -1421,6 +1512,7 @@ export default function App() {
   if (activeTab === "messages") activeScreen = <MessagesScreen apiUrl={apiUrl} token={token} user={user} focusedNotificationCreatedAt={messageFocusCreatedAt} />;
   if (activeTab === "appointments") activeScreen = <AppointmentsScreen apiUrl={apiUrl} token={token} />;
   if (activeTab === "faq") activeScreen = <FAQScreen apiUrl={apiUrl} token={token} />;
+  if (activeTab === "about") activeScreen = <AboutScreen />;
 
   if (introVisible) {
     return <MobileSplashScreen onFinish={hideIntro} />;
@@ -1749,6 +1841,36 @@ const styles = StyleSheet.create({
     color: "#8A5E63",
     fontSize: 16,
     lineHeight: 24,
+  },
+  aboutInstitutionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  aboutLogo: {
+    width: 190,
+    height: 190,
+  },
+  aboutCreditItem: {
+    borderTopWidth: 1,
+    borderTopColor: "#F2D5D8",
+    paddingTop: 16,
+    gap: 6,
+  },
+  aboutCreditItemFirst: {
+    borderTopWidth: 0,
+    paddingTop: 0,
+  },
+  aboutCreditName: {
+    color: "#4A2025",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  aboutCreditRole: {
+    color: "#8A5E63",
+    fontSize: 15,
+    lineHeight: 22,
   },
   modeRow: {
     flexDirection: "row",

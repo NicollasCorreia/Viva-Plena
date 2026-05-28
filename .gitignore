@@ -30,6 +30,8 @@ node_modules/
 .expo/
 **/.expo/
 .expo-shared/
+.expo-tunnel-url.txt
+**/.expo-tunnel-url.txt
 npm-debug.log*
 yarn-*.log*
 pnpm-debug.log*

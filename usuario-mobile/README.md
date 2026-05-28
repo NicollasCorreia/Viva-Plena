@@ -9,12 +9,20 @@ npm install
 npx expo start
 ```
 
+Para testar no celular fisico, suba o backend Django escutando na rede local:
+
+```powershell
+cd ..
+.\.venv\Scripts\python.exe manage.py runserver 0.0.0.0:8000
+```
+
 ## Servidor da API
 
 O app agora usa um endereco fixo de backend via `EXPO_PUBLIC_API_URL`.
 
 1. Copie `usuario-mobile/.env.example` para `usuario-mobile/.env`
 2. Ajuste a URL uma unica vez para o servidor que o app deve consumir
+3. Em celular fisico, use o IP local da maquina, por exemplo `http://192.168.0.5:8000`
 
 A usuaria final nao precisa mais digitar esse endereco dentro do aplicativo.
 
